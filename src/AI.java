@@ -1,8 +1,6 @@
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class used to model the set of belief states already visited and to keep track of their values (in order to avoid visiting multiple times the same states)
@@ -476,37 +474,91 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 	}
 }
 
-public class AI{
+class ContingencyPlan{
+	int action;
+	HashMap<BeliefState, ContingencyPlan> plan;
+	boolean failure;
 
-	ExploredSet exploredSet=new ExploredSet();
+	public ContingencyPlan() {
+	}
+
+	public ContingencyPlan(int action, HashMap<BeliefState, ContingencyPlan> plan) {
+		this.action = action;
+		this.plan = plan;
+		this.failure = true;
+	}
+
+
+	public ContingencyPlan(int action) {
+		this.action = action;
+		this.plan = new HashMap<BeliefState, ContingencyPlan>();
+		this.failure = true;
+	}
+
+	public void fail() {
+		this.failure = false;
+	}
+
+	public void add(BeliefState state, ContingencyPlan subplan) {
+		this.plan.put(state, subplan);
+	}
+
+	public HashMap<BeliefState, ContingencyPlan> getPlan() {
+		return plan;
+	}
+}
+
+
+public class AI{
 
 	public AI() {
 	}
 
-	public ContingencyPlan orSearch(BeliefState currentBeliefStates){
-		if (currentBeliefStates.isGameOver()){
-			return new ContingencyPlan();
-		}
+	public static ContingencyPlan orSearch(BeliefState currentBeliefStates, ExploredSet path,int depth_of_prediction) {
 		ContingencyPlan plan = new ContingencyPlan();
+		depth_of_prediction +=1;
+		if(depth_of_prediction >4){
+			return plan;
+		}
+		if (currentBeliefStates.isGameOver()){
+			return plan;
+		}
+		if (path.get(currentBeliefStates)==null){
+			plan.fail();
+			return plan;
+		}
 		ArrayList<Integer> actions =currentBeliefStates.getMoves();
 		for (Integer action : actions){
-			exploredSet.put(currentBeliefStates,0);
-			plan= andSearch(currentBeliefStates.putPiecePlayer(action));
+			path.put(currentBeliefStates,0);
+			plan= andSearch(currentBeliefStates.putPiecePlayer(action),path,depth_of_prediction);
 			if(!plan.failure){
-				ContingencyPlan newPlan = new ContingencyPlan(action, plan);
-				return newPlan;
+				plan.add(currentBeliefStates,plan);
+				return plan;
 			}
 		}
 		plan.fail();
 		return plan;
-
 	}
 
-	public ContingencyPlan andSearch(Results currentBeliefStates){
-		return null;
+	public static ContingencyPlan andSearch(Results currentBeliefStates,ExploredSet path, int depth_of_prediction) {
+		depth_of_prediction+=1;
+		ContingencyPlan ResultPlan=new ContingencyPlan();
+		ContingencyPlan plan;
+		if(depth_of_prediction >4){
+			return ResultPlan;
+		}
+		for(BeliefState s : currentBeliefStates){
+			plan=orSearch(s,path,depth_of_prediction);
+			if (plan.failure){
+				plan.fail();
+				return plan;
+			}
+			ResultPlan.add(s,plan);
+		}
+		return ResultPlan;
 	}
 
-	public int heuristic(GameState game) {
+	public static float heuristic(GameState game) {
 		int j, current_color;
 		int heuristique=0;
 		for(int i=0; i<7; i++) {
@@ -514,34 +566,64 @@ public class AI{
 			while(game.content(i,j)!=0) { //on cherche l'indice de la première case vide de la colonne courante
 				j+=1;
 			}
+//Pour chaque case autour de la case vide de la colonne courante on ajoute 2 si la case est rouge et 1 si la case est vide
 			if(j!=6) {
 				if(i!=6) {
-					if(game.content(i+1,j+1)==2) heuristique+=1; //case en haut à droite de la case vide
+					if(game.content(i+1,j+1)==2) heuristique+=2; //case en haut à droite de la case vide
+					if(game.content(i+1,j+1)==0) heuristique+=1;
 				}
 				if(i!=0) {
-					if(game.content(i-1,j+1)==2) heuristique+=1; //case en haut à gauche de la case vide
+					if(game.content(i-1,j+1)==2) heuristique+=2; //case en haut à gauche de la case vide
+					if(game.content(i-1,j+1)==0) heuristique+=1;
 				}
 			}
 			if(j!=0) {
-				if(game.content(i,j-1)==2) heuristique+=1; //case en bas de la case vide
+				if(game.content(i,j-1)==2) heuristique+=2; //case en bas de la case vide
+				if(game.content(i,j-1)==0) heuristique+=1;
 				if(i!=6) {
-					if(game.content(i+1,j-1)==2) heuristique+=1; //case en bas à droite de la case vide
+					if(game.content(i+1,j-1)==2) heuristique+=2; //case en bas à droite de la case vide
+					if(game.content(i+1,j-1)==0) heuristique+=1;
 				}
 				if(i!=0) {
-					if(game.content(i-1,j-1)==2) heuristique+=1; //case en bas à gauche de la case vide
+					if(game.content(i-1,j-1)==2) heuristique+=2; //case en bas à gauche de la case vide
+					if(game.content(i-1,j-1)==0) heuristique+=1;
 				}
 			}
 			if(i!=6) {
-				if(game.content(i+1,j)==2) heuristique+=1; //case à droite de la case vide
+				if(game.content(i+1,j)==2) heuristique+=2; //case à droite de la case vide
+				if(game.content(i+1,j)==0) heuristique+=1;
 			}
 			if(i!=0) {
-				if(game.content(i-1,j)==2) heuristique+=1; //case à gauche de la case vide
+				if(game.content(i-1,j)==2) heuristique+=2; //case à gauche de la case vide
+				if(game.content(i-1,j)==0) heuristique+=1;
 			}
 		}
-		return(proba(game)*heuristique);
+		return(game.proba()*heuristique);
 	}
 
 	public static int findNextMove(BeliefState game) {
-		return 0;
+		ExploredSet path = new ExploredSet();
+		ContingencyPlan plan = orSearch(game,path,1);
+		HashMap<ContingencyPlan,Float> value_of_plan = new HashMap<>();
+		for (Entry<BeliefState,ContingencyPlan> subplan : plan.getPlan().entrySet()){
+			float value_of_belief_state =0;
+			for(GameState currentGame : subplan.getKey()){
+				float heuristic_Cgame=heuristic(currentGame);
+				if (heuristic_Cgame>value_of_belief_state){
+					value_of_belief_state=heuristic_Cgame;
+				}
+			}
+			value_of_plan.put(subplan.getValue(),value_of_belief_state);
+		}
+		ContingencyPlan bestPlan = null;
+		float best_C_value=0;
+		for(Entry<ContingencyPlan,Float> subplan : value_of_plan.entrySet()){
+			if (subplan.getValue()>best_C_value){
+				bestPlan=subplan.getKey();
+				best_C_value=subplan.getValue();
+			}
+		}
+        assert bestPlan != null;
+        return bestPlan.action;
 	}
 }
