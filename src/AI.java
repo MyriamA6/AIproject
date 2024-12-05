@@ -1,6 +1,5 @@
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class used to model the set of belief states already visited and to keep track of their values (in order to avoid visiting multiple times the same states)
@@ -476,7 +475,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 
 class ContingencyPlan{
 	int action;
-	HashMap<BeliefState, ContingencyPlan> plan;
+	HashMap<BeliefState, ContingencyPlan> plan=new HashMap<>();
 	boolean failure;
 
 	public ContingencyPlan() {
@@ -511,46 +510,73 @@ class ContingencyPlan{
 
 public class AI{
 
+	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
+	static ExploredSet exploredSet =new ExploredSet();
+
 	public AI() {
 	}
 
-	public static ContingencyPlan orSearch(BeliefState currentBeliefStates, ExploredSet path,int depth_of_prediction) {
-		ContingencyPlan plan = new ContingencyPlan();
+
+	//Method to compute the heuristic of a given beliefState
+	//Returns the maximum heuristic value of the potential GameState contained in the beliefState
+	public static float computeHeuristicForBeliefState(BeliefState currentBeliefState){
+		float value_of_belief_state =0;
+		for(GameState game : currentBeliefState) {
+			float heuristic_Cgame=heuristic(game);
+			if (heuristic_Cgame>value_of_belief_state){
+				value_of_belief_state=heuristic_Cgame;
+			}
+		}
+		return value_of_belief_state;
+	}
+
+	//function orSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
+	public static ContingencyPlan orSearch(BeliefState currentBeliefStates, ArrayList<BeliefState> path,int depth_of_prediction) {
+		ContingencyPlan subplan = new ContingencyPlan();
 		depth_of_prediction +=1;
 		if(depth_of_prediction >4){
-			return plan;
+			return subplan;
 		}
 		if (currentBeliefStates.isGameOver()){
-			return plan;
+			return subplan;
 		}
-		if (path.get(currentBeliefStates)==null){
-			plan.fail();
-			return plan;
+		if (path.contains(currentBeliefStates)){
+			subplan.fail();
+			return subplan;
 		}
+		path.add(currentBeliefStates);
 		ArrayList<Integer> actions =currentBeliefStates.getMoves();
 		for (Integer action : actions){
-			path.put(currentBeliefStates,0);
-			plan= andSearch(currentBeliefStates.putPiecePlayer(action),path,depth_of_prediction);
+			ContingencyPlan plan =new ContingencyPlan(action);
+			Results BeliefStatesAfterAction =currentBeliefStates.putPiecePlayer(action);
+			subplan= andSearch(BeliefStatesAfterAction,path,depth_of_prediction);
 			if(!plan.failure){
-				plan.add(currentBeliefStates,plan);
+				exploredSet.put(currentBeliefStates,computeHeuristicForBeliefState(currentBeliefStates));
+				for (BeliefState state : BeliefStatesAfterAction){
+					plan.add(state,plan);
+				}
 				return plan;
 			}
 		}
-		plan.fail();
-		return plan;
+		subplan.fail();
+		return subplan;
 	}
 
-	public static ContingencyPlan andSearch(Results currentBeliefStates,ExploredSet path, int depth_of_prediction) {
+	//function andSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
+	public static ContingencyPlan andSearch(Results currentBeliefStates,ArrayList<BeliefState> path, int depth_of_prediction) {
 		depth_of_prediction+=1;
+
+		//Contingency plan that will contain all plan of actions for any given Belief state
+		//keeping the format [if s1 then plan1 ... if sN then planN]
 		ContingencyPlan ResultPlan=new ContingencyPlan();
-		ContingencyPlan plan;
+
 		if(depth_of_prediction >4){
 			return ResultPlan;
 		}
+		ContingencyPlan plan; //variable that will contain the plan of the beliefState studied
 		for(BeliefState s : currentBeliefStates){
 			plan=orSearch(s,path,depth_of_prediction);
 			if (plan.failure){
-				plan.fail();
 				return plan;
 			}
 			ResultPlan.add(s,plan);
@@ -563,7 +589,7 @@ public class AI{
 		int heuristique=0;
 		for(int i=0; i<7; i++) {
 			j=0;
-			while(game.content(i,j)!=0) { //on cherche l'indice de la première case vide de la colonne courante
+			while(j<6 && game.content(i,j)!=0) { //on cherche l'indice de la première case vide de la colonne courante
 				j+=1;
 			}
 //Pour chaque case autour de la case vide de la colonne courante on ajoute 2 si la case est rouge et 1 si la case est vide
@@ -601,29 +627,27 @@ public class AI{
 		return(game.proba()*heuristique);
 	}
 
+	//function returning the best move for a given BeliefState
 	public static int findNextMove(BeliefState game) {
 		ExploredSet path = new ExploredSet();
-		ContingencyPlan plan = orSearch(game,path,1);
-		HashMap<ContingencyPlan,Float> value_of_plan = new HashMap<>();
-		for (Entry<BeliefState,ContingencyPlan> subplan : plan.getPlan().entrySet()){
-			float value_of_belief_state =0;
-			for(GameState currentGame : subplan.getKey()){
-				float heuristic_Cgame=heuristic(currentGame);
-				if (heuristic_Cgame>value_of_belief_state){
-					value_of_belief_state=heuristic_Cgame;
-				}
-			}
-			value_of_plan.put(subplan.getValue(),value_of_belief_state);
-		}
+
+
+		ContingencyPlan plan = orSearch(game,new ArrayList<BeliefState>(),1);
 		ContingencyPlan bestPlan = null;
-		float best_C_value=0;
-		for(Entry<ContingencyPlan,Float> subplan : value_of_plan.entrySet()){
-			if (subplan.getValue()>best_C_value){
-				bestPlan=subplan.getKey();
-				best_C_value=subplan.getValue();
+
+		//Search of the best plan in the plan of action obtained after or-and-search
+		float best_C_value=Float.NEGATIVE_INFINITY;
+		for (Entry<BeliefState,ContingencyPlan> subplan : plan.getPlan().entrySet()){
+			Float current_C_value=exploredSet.get(subplan.getKey());
+			if(current_C_value==null) {
+				current_C_value=computeHeuristicForBeliefState(subplan.getKey());
+			}
+			if(current_C_value>best_C_value){
+				best_C_value=current_C_value;
+				bestPlan=subplan.getValue();
 			}
 		}
-        assert bestPlan != null;
+
         return bestPlan.action;
 	}
 }
