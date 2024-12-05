@@ -1,6 +1,8 @@
 import java.util.*;
 import java.util.Map.Entry;
 
+//import test_projet.GameState;
+
 /**
  * Class used to model the set of belief states already visited and to keep track of their values (in order to avoid visiting multiple times the same states)
  */
@@ -583,48 +585,182 @@ public class AI{
 		}
 		return ResultPlan;
 	}
-
+		
+	/* Calcule la valeur d'utilité sur la ligne concernée */
+	public static int compute_row(GameState game, int row, int column) {
+		int res = 0;
+		
+		switch(column) {
+		
+		case 0:
+			//à droite
+			if (game.content(row, column+1) == 2) res+=2;
+			else if (game.content(row, column+1) == 0) res+=1;
+			break;
+			
+		case 6:
+			//à gauche
+			if (game.content(row, column-1) == 2) res+=2;
+			else if (game.content(row, column-1) == 0) res+=1;
+			break;
+			
+		default:
+			//à droite
+			if (game.content(row, column+1) == 2) res+=2;
+			else if (game.content(row, column+1) == 0) res+=1;
+			//à gauche
+			if (game.content(row, column-1) == 2) res+=2;
+			else if (game.content(row, column-1) == 0) res+=1;
+			break;
+		}
+		
+		return res;
+	}
+	
+	/* calcule la valeur d'utilité sur la colonne concernée */
+	public static int compute_column(GameState game, int row, int column) {
+		int res = 0;
+		
+		switch(row) {
+		
+		//il n'y a rien en-dessous
+		case 0:
+			break;
+			
+		default:
+			//en-dessous
+			if (game.content(row-1, column) == 2) res+=2;
+			else if (game.content(row-1, column) == 0) res+=1;
+			break;
+		}
+		
+		return res;
+	}
+	
+	/* calcule la valeur d'utilité sur les diagonales concernées */
+	public static int compute_diag(GameState game, int row, int column) {
+		int res = 0;
+		
+		switch(column) {
+		
+		case 0:
+			
+			switch(row) {
+				
+			case 0:
+				//en haut à droite
+				if (game.content(row+1, column+1) == 2) res+=2;
+				else if (game.content(row+1, column+1) == 0) res+=1;
+				break;
+				
+			case 5:
+				//en bas à droite
+				if (game.content(row-1, column+1) == 2) res+=2;
+				else if (game.content(row-1, column+1) == 0) res+=1;
+				break;
+				
+			default:
+				//en haut à droite
+				if (game.content(row+1, column+1) == 2) res+=2;
+				else if (game.content(row+1, column+1) == 0) res+=1;
+				//en bas à droite
+				if (game.content(row-1, column+1) == 2) res+=2;
+				else if (game.content(row-1, column+1) == 0) res+=1;
+				break;
+			}
+			break;
+			
+		
+		case 6:
+			
+			switch(row) {
+			
+			case 0:
+				//en haut à gauche
+				if (game.content(row+1, column-1) == 2) res+=2;
+				else if (game.content(row+1, column-1) == 0) res+=1;
+				break;
+				
+			case 5:
+				//en bas à gauche
+				if (game.content(row-1, column-1) == 2) res+=2;
+				else if (game.content(row-1, column-1) == 0) res+=1;
+				break;
+				
+			default:
+				//en haut à gauche
+				if (game.content(row+1, column-1) == 2) res+=2;
+				else if (game.content(row+1, column-1) == 0) res+=1;
+				//en bas à gauche
+				if (game.content(row-1, column-1) == 2) res+=2;
+				else if (game.content(row-1, column-1) == 0) res+=1;
+				break;
+			}
+			break;
+			
+			
+		default:
+			
+			switch(row) {
+			
+			case 0:
+				//en haut à droite
+				if (game.content(row+1, column+1) == 2) res+=2;
+				else if (game.content(row+1, column+1) == 0) res+=1;
+				//en haut à gauche
+				if (game.content(row+1, column-1) == 2) res+=2;
+				else if (game.content(row+1, column-1) == 0) res+=1;
+				break;
+				
+			case 5:
+				//en bas à gauche
+				if (game.content(row-1, column-1) == 2) res+=2;
+				else if (game.content(row-1, column-1) == 0) res+=1;
+				//en bas à droite
+				if (game.content(row-1, column+1) == 2) res+=2;
+				else if (game.content(row-1, column+1) == 0) res+=1;
+				break;
+				
+			default:
+				//en bas à gauche
+				if (game.content(row-1, column-1) == 2) res+=2;
+				else if (game.content(row-1, column-1) == 0) res+=1;
+				//en bas à droite
+				if (game.content(row-1, column+1) == 2) res+=2;
+				else if (game.content(row-1, column+1) == 0) res+=1;
+				//en haut à droite
+				if (game.content(row+1, column+1) == 2) res+=2;
+				else if (game.content(row+1, column+1) == 0) res+=1;
+				//en haut à gauche
+				if (game.content(row+1, column-1) == 2) res+=2;
+				else if (game.content(row+1, column-1) == 0) res+=1;
+				break;
+			
+			}
+		
+		}
+		return res;
+	}
+	
+	
 	public static float heuristic(GameState game) {
-		int j, current_color;
-		int heuristique=0;
-		for(int i=0; i<7; i++) {
-			j=0;
-			while(j<6 && game.content(i,j)!=0) { //on cherche l'indice de la première case vide de la colonne courante
-				j+=1;
-			}
-//Pour chaque case autour de la case vide de la colonne courante on ajoute 2 si la case est rouge et 1 si la case est vide
-			if(j!=6) {
-				if(i!=6) {
-					if(game.content(i+1,j+1)==2) heuristique+=2; //case en haut à droite de la case vide
-					if(game.content(i+1,j+1)==0) heuristique+=1;
-				}
-				if(i!=0) {
-					if(game.content(i-1,j+1)==2) heuristique+=2; //case en haut à gauche de la case vide
-					if(game.content(i-1,j+1)==0) heuristique+=1;
-				}
-			}
-			if(j!=0) {
-				if(game.content(i,j-1)==2) heuristique+=2; //case en bas de la case vide
-				if(game.content(i,j-1)==0) heuristique+=1;
-				if(i!=6) {
-					if(game.content(i+1,j-1)==2) heuristique+=2; //case en bas à droite de la case vide
-					if(game.content(i+1,j-1)==0) heuristique+=1;
-				}
-				if(i!=0) {
-					if(game.content(i-1,j-1)==2) heuristique+=2; //case en bas à gauche de la case vide
-					if(game.content(i-1,j-1)==0) heuristique+=1;
-				}
-			}
-			if(i!=6) {
-				if(game.content(i+1,j)==2) heuristique+=2; //case à droite de la case vide
-				if(game.content(i+1,j)==0) heuristique+=1;
-			}
-			if(i!=0) {
-				if(game.content(i-1,j)==2) heuristique+=2; //case à gauche de la case vide
-				if(game.content(i-1,j)==0) heuristique+=1;
+		int row;
+		
+		int heuristic_value = 0;
+		
+		//On va calculer pour chaque case jouable une valeur qui nous donnera une estimation de l'utilité
+		for (int column = 0; column < 7; column++) {
+			
+			//On cherche la première ligne vide sur la colonne j
+			for (row = 0; row < 6 && game.content(row, column) != 0; row++) {
+				
+				//si la colonne n'est pas remplie
+				if (row < 6)
+					heuristic_value += compute_row(game, row, column) + compute_column(game, row, column) + compute_diag(game, row, column);
+				
 			}
 		}
-		return(game.proba()*heuristique);
+		return game.proba()*((float) heuristic_value);
 	}
 
 	//function returning the best move for a given BeliefState
