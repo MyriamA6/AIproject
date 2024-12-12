@@ -474,29 +474,37 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 	}
 }
 
+
+
+
+
 class ContingencyPlan{
 	Integer action;
 	HashMap<BeliefState, ContingencyPlan> plan=new HashMap<>();
-	boolean failure;
+	double heuristic_value;
 
 	public ContingencyPlan() {
+		this.heuristic_value = Double.NEGATIVE_INFINITY;
 	}
 
-	public ContingencyPlan(Integer action, HashMap<BeliefState, ContingencyPlan> plan) {
+	public ContingencyPlan(Integer action, HashMap<BeliefState, ContingencyPlan> plan, double heuristic_value) {
 		this.action = action;
 		this.plan = plan;
-		this.failure = false;
+		this.heuristic_value = heuristic_value;
 	}
 
 
 	public ContingencyPlan(Integer action) {
 		this.action = action;
 		this.plan = new HashMap<BeliefState, ContingencyPlan>();
-		this.failure = false;
 	}
 
-	public void fail() {
-		this.failure = true;
+	public void setHeuristicValue(double heuristic_value) {
+		this.heuristic_value = heuristic_value;
+	}
+	
+	public double getHeuristicValue() {
+		return this.heuristic_value;
 	}
 
 	public void add(BeliefState state, ContingencyPlan subplan) {
@@ -527,8 +535,8 @@ public class AI{
 
 	//Method to compute the heuristic of a given beliefState
 	//Returns the maximum heuristic value of the potential GameState contained in the beliefState
-	public static float computeHeuristicForBeliefState(BeliefState currentBeliefState){
-		float value_of_belief_state =0;
+	public static double computeHeuristicForBeliefState(BeliefState currentBeliefState){
+		double value_of_belief_state =0;
 		for(GameState game : currentBeliefState) {
 			value_of_belief_state += heuristic(game);
 		}
@@ -541,7 +549,7 @@ public class AI{
 		int n = moves.size();
 		for (int i = 0; i < n; i++) {
 			Integer key = moves.get(i);
-			float key_value = heuristic(state.copy().putPiecePlayer(key));
+			double key_value = heuristic(state.copy().putPiecePlayer(key));
 			int j = i - 1;
 			
 			while (j >= 0 && heuristic(state.copy().putPiecePlayer(moves.get(j))) < key_value) {
@@ -556,6 +564,7 @@ public class AI{
 	public static ContingencyPlan orSearch(BeliefState currentBeliefState, ArrayList<BeliefState> path,int depth_of_prediction) {
 		HashMap<BeliefState, ContingencyPlan> plan;
 		ContingencyPlan plan_res;
+		ContingencyPlan max_plan = new ContingencyPlan();
 		
 		if (depth_of_prediction > DEPTH) return new ContingencyPlan();
 		
@@ -574,11 +583,21 @@ public class AI{
 			path.add(currentBeliefState);
 			plan = andSearch(currentBeliefState.copy().putPiecePlayer(action), path, depth_of_prediction+1);
 			if (plan != null) {
-				plan_res = new ContingencyPlan(action, plan);
-				return plan_res;
+				plan_res = new ContingencyPlan(action, plan, heuristic(currentBeliefState.copy().putPiecePlayer(action)));
+				//System.out.println(plan_res.getHeuristicValue());
+				//System.out.println(max_plan.getHeuristicValue());
+				if (plan_res.getHeuristicValue() > max_plan.getHeuristicValue())
+					max_plan = plan_res;
 			}
+			
 		}
-		return null;
+		
+		//System.out.println(max_plan.getHeuristicValue());
+		if (max_plan.getHeuristicValue() == Double.NEGATIVE_INFINITY) {
+			//System.out.println("salut !");
+			return null;
+		}
+		return max_plan;
 	}
 
 	//function andSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
@@ -603,8 +622,8 @@ public class AI{
 		return hmap;
 	}
 		
-	public static float heuristic(Results predictions) {
-		float res = 0.0f;
+	public static double heuristic(Results predictions) {
+		double res = 0.0f;
 		for (BeliefState beliefState : predictions) {
 			for (GameState state : beliefState)
 				res += heuristic(state);
@@ -613,21 +632,23 @@ public class AI{
 	}
 		
 	
-	public static float heuristic(GameState game) {
+	public static double heuristic(GameState game) {
 		int heuristic_value = 0;						   
 		
 		//calcul de l'utilité en fonction des pions rouges
 		for (int row = 0; row < 6; row++) {
 			for (int column = 0; column < 7; column++) {
 				if (game.content(row, column) == 2)
-					heuristic_value += (6-row)*(HEURISTIC[row][column] - scan(game, row, column)); //on mets du poids sur les pions placés bas
+					heuristic_value += (6-row)*(HEURISTIC[row][column] - scan(game, row, column, 1)); //on mets du poids sur les pions placés bas
+				if (game.content(row, column) == 1)
+					heuristic_value -= (6-row)*(HEURISTIC[row][column] - scan(game, row, column, 2));
 			}
 		}
-		return game.proba()*((float) heuristic_value);
+		return game.proba()*((double) heuristic_value);
 	}
 	
 	
-	public static int scan(GameState game, int row, int column) {
+	public static int scan(GameState game, int row, int column, int opponent) {
 		int cpt = 0;
 		
 		switch(row) {
@@ -635,85 +656,85 @@ public class AI{
 			
 			switch(column) {
 			case 0:
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column-3) == opponent || game.content(row, column-2) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column+2) == opponent || game.content(row, column+1) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 6:
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 			}
@@ -724,115 +745,115 @@ public class AI{
 			
 			switch(column) {
 			case 0:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 1:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break; 
 				
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column-3) == opponent || game.content(row, column-2) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column+2) == opponent || game.content(row, column+1) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 5:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 6:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 			}
@@ -843,145 +864,145 @@ public class AI{
 			
 			switch(column) {
 			case 0:
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
+				if (game.content(row-2, column-2) == opponent || game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
-				if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
+				if (game.content(row+2, column-2) == opponent || game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
 				break;
 				
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column-3) == opponent || game.content(row, column-2) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
+				if (game.content(row-2, column-2) == opponent || game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
 					cpt++;
-				if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
+				if (game.content(row-2, column+2) == opponent || game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column+2) == opponent || game.content(row, column+1) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
+				if (game.content(row-2, column+2) == opponent || game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
-				if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
+				if (game.content(row+2, column+2) == opponent || game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
 				break;
 				
 			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 6:
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+				if (game.content(row-2, column) == opponent || game.content(row-1, column) == opponent || game.content(row+1, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row+1, column) == opponent || game.content(row+2, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row+2, column) == opponent || game.content(row+3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 			}
@@ -992,145 +1013,145 @@ public class AI{
 			
 			switch(column) {
 			case 0:
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
+				if (game.content(row+2, column-2) == opponent || game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
-				if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
+				if (game.content(row-2, column-2) == opponent || game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent)
 					cpt++;
 				break;
 				
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column-3) == opponent || game.content(row, column-2) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
+				if (game.content(row+2, column-2) == opponent || game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
-				if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
+				if (game.content(row+2, column+2) == opponent || game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column+2) == opponent || game.content(row, column+1) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
+				if (game.content(row+2, column+2) == opponent || game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
-				if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
+				if (game.content(row-2, column+2) == opponent || game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
 				break;
 				
 			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 6:
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+				if (game.content(row+2, column) == opponent || game.content(row+1, column) == opponent || game.content(row-1, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 			}
@@ -1141,115 +1162,115 @@ public class AI{
 			
 			switch(column) {
 			case 0:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 1:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column-3) == opponent || game.content(row, column-2) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column+2) == opponent || game.content(row, column+1) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+				if (game.content(row+1, column-1) == opponent || game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 5:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+				if (game.content(row+1, column+1) == opponent || game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 6:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+				if (game.content(row+1, column) == opponent || game.content(row-1, column) == opponent || game.content(row-2, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 			}
@@ -1260,85 +1281,85 @@ public class AI{
 			
 			switch(column) {
 			case 0:
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column-3) == opponent || game.content(row, column-2) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+				if (game.content(row, column-2) == opponent || game.content(row, column-1) == opponent || game.content(row, column+1) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column+1) == opponent || game.content(row, column+2) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+				if (game.content(row, column+2) == opponent || game.content(row, column+1) == opponent || game.content(row, column-1) == opponent)
 					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+				if (game.content(row, column+1) == opponent || game.content(row, column-1) == opponent || game.content(row, column-2) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 				
 			case 6:
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+				if (game.content(row-1, column) == opponent || game.content(row-2, column) == opponent || game.content(row-3, column) == opponent)
 					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
 					cpt++;
 				break;
 			}
@@ -1573,4 +1594,120 @@ public static int compute_diag(GameState game, int row, int column) {
 	}
 	return res;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public static int compute_row_bonus(GameState game, int row, int column) {
+	int res = 0, temp_res = 0, temp;
+	int lb = Integer.max(0, column-3);
+	int ub = Integer.min(6, column+3); 
+	
+	boolean run = true;
+	
+	while(run) {
+		for (int i = lb; i <= Integer.min(lb+4, ub); i++) {
+			temp = game.content(row, i);
+			if (temp == 2)
+				temp_res += 2;
+			else if (temp == 0)
+				temp_res += 1;
+			
+			if (ub - lb + 1 < 4)
+				run = false;
+
+			lb++;
+		}
+		res += temp_res;
+		temp_res = 0;
+	}
+	return res;
+}
+
+public static int compute_column_bonus(GameState game, int row, int column) {
+	int res = 0, temp_res = 0, temp;
+	int lb = Integer.max(0, row-3);
+	int ub = Integer.min(5, row+3); 
+	
+	boolean run = true;
+	
+	while(run) {
+		for (int i = lb; i <= Integer.min(lb+4, ub); i++) {
+			temp = game.content(i, column);
+			if (temp == 2)
+				temp_res += 2;
+			else if (temp == 0)
+				temp_res += 1;
+			
+			if (ub - lb + 1 < 4)
+				run = false;
+
+			lb++;
+		}
+		res += temp_res;
+		temp_res = 0;
+	}
+	return res;
+}
+
+public static int compute_bonus_columns(GameState state){
+    int col_count =0;
+    for(int i=0; i<7; i++){
+        for (int j=0; j<3; j++){
+            if(state.content(i,j)==2){
+                if(state.content(i,j+1)==2){
+                    if(state.content(i,j+2)==2){
+                        if(state.content(i,j+3)==2){
+                            col_count +=3;
+                        }
+                    }
+                    else{
+                        col_count +=2;
+                    }
+                }
+                else if(state.content(i,j+1)==0){
+                    col_count +=1;
+                }
+            }
+        }
+    }
+    return col_count;
+}
+
+public static int compute_bonus_rows(GameState state){
+    int row_count=0;
+    for(int i=0; i<4; i++){
+        for (int j=0; j<6; j++){
+            if(state.content(i,j)==2){
+                if(state.content(i+1,j)==2){
+                    if(state.content(i+2,j)==2){
+                        if(state.content(i+3,j)==2){
+                            row_count+=3;
+                        }
+                    }
+                    else{
+                        row_count+=2;
+                    }
+                }
+                else if(state.content(i,j)==0){
+                    row_count+=1;
+                }
+            }
+        }
+    }
+    return row_count;
+}
+
 }
