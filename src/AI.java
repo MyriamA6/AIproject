@@ -7,14 +7,14 @@ import java.util.Map.Entry;
  */
 class ExploredSet{
 	TreeMap<BeliefState, Float> exploredSet;
-	
+
 	/**
 	 * construct an empty set
 	 */
 	public ExploredSet() {
 		this.exploredSet = new TreeMap<BeliefState, Float>();
 	}
-	
+
 	/**
 	 * Search if a given state belongs to the explored set and returns its values if that is the case
 	 * @param state the state for which the search takes place
@@ -27,7 +27,7 @@ class ExploredSet{
 		}
 		return entry.getValue() * state.probaSum() / entry.getKey().probaSum();
 	}
-	
+
 	/**
 	 * Put a belief state and its corresponding value into the set
 	 * @param beliefState the belief state to be added
@@ -43,11 +43,11 @@ class ExploredSet{
  */
 class Results implements Iterable<BeliefState>{
 	TreeMap<String, BeliefState> results;
-	
+
 	public Results(){
 		this.results = new TreeMap<String, BeliefState>();
 	}
-	
+
 	/**
 	 * Return the belief state of the result that correspond to a given percept
 	 * @param percept String that describe what is visible on the board for player 2
@@ -56,11 +56,11 @@ class Results implements Iterable<BeliefState>{
 	public BeliefState get(String percept) {
 		return this.results.get(percept);
 	}
-	
+
 	public void put(String s, BeliefState state) {
 		this.results.put(s, state);
 	}
-	
+
 	public Iterator<BeliefState> iterator(){
 		return this.results.values().iterator();
 	}
@@ -71,11 +71,11 @@ class Results implements Iterable<BeliefState>{
  */
 class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 	private byte[] isVisible;
-	
+
 	private TreeSet<GameState> beliefState;
-	
+
 	private int played;
-	
+
 	public BeliefState() {
 		this.beliefState = new TreeSet<GameState>();
 		this.isVisible = new byte[6];
@@ -84,7 +84,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		this.played = 0;
 	}
-	
+
 	public BeliefState(byte[] isVisible, int played) {
 		this();
 		for(int i = 0; i < 6; i++) {
@@ -92,7 +92,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		this.played = played;
 	}
-	
+
 	public void setStates(BeliefState beliefState) {
 		this.beliefState = beliefState.beliefState;
 		for(int i = 0; i < 6; i++) {
@@ -100,7 +100,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		this.played = beliefState.played;
 	}
-	
+
 	public boolean contains(GameState state) {
 		return this.beliefState.contains(state);
 	}
@@ -112,7 +112,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 	public int size() {
 		return this.beliefState.size();
 	}
-	
+
 	public void add(GameState state) {
 		if(!this.beliefState.contains(state)) {
 			this.beliefState.add(state);
@@ -122,7 +122,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 			copy.addProba(state.proba());
 		}
 	}
-	
+
 	/**
 	 * Compute the possible results from a given believe state, after the opponent perform an action. This function souhd be used only when this is the turn of the opponent.
 	 * @return an objet of class result containing all possible result of an action performed by the opponent if this is the turn of the opponent, and null otherwise.
@@ -231,7 +231,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Perform the action corresponding for the player to play a given column, and return the result of this action for each state of the belief state as a Results
 	 * @param column index of the column played
@@ -285,9 +285,9 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		else {
 			return null;
 		}
-		
+
 	}
-	
+
 	public static BeliefState filter(Results beliefStates, GameState state) {
 		byte tab[] = new byte[6];
 		for(int i = 0; i < 6; i++) {
@@ -320,7 +320,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		return beliefState;
 	}
-	
+
 	/**
 	 * Make a copy of the belief state containing the same states
 	 * @return copy of the belief state
@@ -336,11 +336,11 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		bs.played = this.played;
 		return bs;
 	}
-	
+
 	public Iterator<GameState> iterator(){
 		return this.beliefState.iterator();
 	}
-	
+
 	/**
 	 * Return the list of the column where a piece can be played (columns which are not full)
 	 * @return
@@ -359,7 +359,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 			return new ArrayList<Integer>();
 		}
 	}
-	
+
 	/**
 	 * Provide information about the next player to play
 	 * @return true if the next to play is the opponent, and false otherwise
@@ -367,14 +367,14 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 	public boolean turn() {
 		return this.beliefState.first().turn();
 	}
-	
+
 	public boolean isVisible(int row, int column) {
 		int pos = row * 7 + column;
 		int index = pos / 8;
 		pos = pos % 8;
 		return ((this.isVisible[index] + 128) >> pos) % 2 == 1;
 	}
-	
+
 	public void setVisible(int row, int column, boolean val) {
 		int pos = row * 7 + column;
 		int index = pos / 8;
@@ -382,7 +382,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		int delta = ((val? 1: 0) - (this.isVisible(row, column)? 1: 0)) << pos;
 		this.isVisible[index] = (byte) (this.isVisible[index] + delta);
 	}
-	
+
 	public static void setVisible(int row, int column, boolean val, byte[] tab) {
 		int pos = row * 7 + column;
 		int index = pos / 8;
@@ -391,7 +391,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		int delta = ((val? 1: 0) - ((posValue >> pos) % 2)) << pos;
 		tab[index] = (byte) (posValue + delta - 128);
 	}
-	
+
 	/**
 	 * Check if the game is over in all state of the belief state. Note that when the game is over, the board is revealed and the environment becomes observable.
 	 * @return true if the game is over, and false otherwise
@@ -404,7 +404,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Check if all the games in the belief state are full
 	 * @return
@@ -413,7 +413,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		return this.beliefState.first().isFull();
 	}
 
-	
+
 	public void restart() {
 		this.beliefState = new TreeSet<GameState>();
 		this.isVisible = new byte[6];
@@ -422,7 +422,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		this.played = 0;
 	}
-	
+
 	public String toString() {
 		String s = "BeliefState: size = " + this.beliefState.size() + " played = " + this.played + "\n";
 		for(int row = 5; row > -1; row--) {
@@ -436,7 +436,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		return s;
 	}
-	
+
 	public int compareTo(BeliefState bs) {
 		if(this.played != bs.played)
 			return this.played > bs.played? 1: -1;
@@ -464,7 +464,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 		}
 		return 0;
 	}
-	
+
 	public float probaSum() {
 		float sum = 0;
 		for(GameState state: this.beliefState) {
@@ -515,11 +515,11 @@ public class AI{
 	static ExploredSet exploredSet =new ExploredSet();
 	final static int DEPTH = 2;
 	final static int HEURISTIC[][] = new int[][] {{3,4,5,7,5,4,3},
-		   										  {4,6,8,10,8,6,4},
-		   										  {5,8,11,13,11,8,5},
-		   										  {5,8,11,13,11,8,5},
-		   										  {4,6,8,10,8,6,4},
-		   										  {3,4,5,7,5,4,3}};
+			{4,6,8,10,8,6,4},
+			{5,8,11,13,11,8,5},
+			{5,8,11,13,11,8,5},
+			{4,6,8,10,8,6,4},
+			{3,4,5,7,5,4,3}};
 
 	public AI() {
 	}
@@ -535,7 +535,7 @@ public class AI{
 		return value_of_belief_state;
 	}
 
-	
+
 	//insertion sort tel que l'action la plus prometteuse est placée en première
 	public static void sort_moves(ArrayList<Integer> moves, BeliefState state) {
 		int n = moves.size();
@@ -543,7 +543,7 @@ public class AI{
 			Integer key = moves.get(i);
 			float key_value = heuristic(state.copy().putPiecePlayer(key));
 			int j = i - 1;
-			
+
 			while (j >= 0 && heuristic(state.copy().putPiecePlayer(moves.get(j))) < key_value) {
 				moves.set(j+1, moves.get(j));
 				j--;
@@ -551,25 +551,25 @@ public class AI{
 			moves.set(j + 1, key);
 		}
 	}
-	
+
 	//function orSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
 	public static ContingencyPlan orSearch(BeliefState currentBeliefState, ArrayList<BeliefState> path,int depth_of_prediction) {
 		HashMap<BeliefState, ContingencyPlan> plan;
 		ContingencyPlan plan_res;
-		
+
 		if (depth_of_prediction > DEPTH) return new ContingencyPlan();
-		
+
 		if (currentBeliefState.isGameOver())
 			return new ContingencyPlan();
-		
+
 		if (path.contains(currentBeliefState))
 			return null;
-		
+
 		ArrayList<Integer> moves = currentBeliefState.getMoves();
-		
+
 		//we will sort the list of moves in increasing order of the value of the beliefstate associated
 		sort_moves(moves, currentBeliefState);
-		
+
 		for (Integer action : moves) {
 			path.add(currentBeliefState);
 			plan = andSearch(currentBeliefState.copy().putPiecePlayer(action), path, depth_of_prediction+1);
@@ -583,12 +583,12 @@ public class AI{
 
 	//function andSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
 	public static HashMap<BeliefState, ContingencyPlan> andSearch(Results currentBeliefStates,ArrayList<BeliefState> path, int depth_of_prediction) {
-		
+
 		HashMap<BeliefState, ContingencyPlan> hmap = new HashMap<BeliefState,ContingencyPlan>();
 		ContingencyPlan subplan;
-		
+
 		if (depth_of_prediction > DEPTH) return new HashMap<BeliefState,ContingencyPlan>();
-		
+
 		for (BeliefState state : currentBeliefStates) {
 			Results predictions = state.copy().predict();
 			if (predictions == null) //erreur contournée ici (je sais pas pourquoi il est nul des fois)
@@ -602,7 +602,7 @@ public class AI{
 		}
 		return hmap;
 	}
-		
+
 	public static float heuristic(Results predictions) {
 		float res = 0.0f;
 		for (BeliefState beliefState : predictions) {
@@ -611,11 +611,11 @@ public class AI{
 		}
 		return res;
 	}
-		
-	
+
+
 	public static float heuristic(GameState game) {
-		int heuristic_value = 0;						   
-		
+		int heuristic_value = 0;
+
 		//calcul de l'utilité en fonction des pions rouges
 		for (int row = 0; row < 6; row++) {
 			for (int column = 0; column < 7; column++) {
@@ -625,747 +625,747 @@ public class AI{
 		}
 		return game.proba()*((float) heuristic_value);
 	}
-	
-	
+
+
 	public static int scan(GameState game, int row, int column) {
 		int cpt = 0;
-		
+
 		switch(row) {
-		case 0:
-			
-			switch(column) {
 			case 0:
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
+
+				switch(column) {
+					case 0:
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 1:
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 2:
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 3:
+						if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 4:
+						if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 5:
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 6:
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+				}
+
 				break;
-				
+
 			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
+
+				switch(column) {
+					case 0:
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 1:
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 2:
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 3:
+						if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 4:
+						if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 5:
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 6:
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+				}
+
 				break;
-				
+
 			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
+
+				switch(column) {
+					case 0:
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 1:
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 2:
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						break;
+
+					case 3:
+						if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
+							cpt++;
+						if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 4:
+						if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						break;
+
+					case 5:
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 6:
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
+							cpt++;
+						break;
+				}
+
 				break;
-				
+
 			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
+
+				switch(column) {
+					case 0:
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 1:
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 2:
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
+							cpt++;
+						break;
+
+					case 3:
+						if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 4:
+						if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						break;
+
+					case 5:
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 6:
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+				}
+
 				break;
-				
+
 			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
+
+				switch(column) {
+					case 0:
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 1:
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 2:
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 3:
+						if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 4:
+						if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 5:
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 6:
+						if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+				}
+
 				break;
-				
+
 			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
+
+				switch(column) {
+					case 0:
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 1:
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 2:
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 3:
+						if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
+							cpt++;
+						break;
+
+					case 4:
+						if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
+							cpt++;
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 5:
+						if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+
+					case 6:
+						if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
+							cpt++;
+						if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
+							cpt++;
+						if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
+							cpt++;
+						break;
+				}
+
 				break;
-				
-			case 6:
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				break;
-			}
-			
-			break;
-			
-		case 1:
-			
-			switch(column) {
-			case 0:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 1:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				break; 
-				
-			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 5:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 6:
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-			}
-			
-			break;
-			
-		case 2:
-			
-			switch(column) {
-			case 0:
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				break;
-				
-			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1 || game.content(row+3, column+3) == 1)
-					cpt++;
-				if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				break;
-				
-			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 6:
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-2, column) == 1 || game.content(row-1, column) == 1 || game.content(row+1, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row+1, column) == 1 || game.content(row+2, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row+2, column) == 1 || game.content(row+3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1 || game.content(row+3, column-3) == 1)
-					cpt++;
-				break;
-			}
-			
-			break;
-			
-		case 3:
-			
-			switch(column) {
-			case 0:
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				if (game.content(row-2, column-2) == 1 || game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row+1, column+1) == 1 || game.content(row+2, column+2) == 1)
-					cpt++;
-				break;
-				
-			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row+2, column-2) == 1 || game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row+2, column+2) == 1 || game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				if (game.content(row-2, column+2) == 1 || game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				break;
-				
-			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row+1, column-1) == 1 || game.content(row+2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 6:
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+2, column) == 1 || game.content(row+1, column) == 1 || game.content(row-1, column) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-			}
-			
-			break;
-			
-		case 4:
-			
-			switch(column) {
-			case 0:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 1:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row+1, column-1) == 1 || game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 5:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row+1, column+1) == 1 || game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 6:
-				if (game.content(row+1, column) == 1 || game.content(row-1, column) == 1 || game.content(row-2, column) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-			}
-			
-			break;
-			
-		case 5:
-			
-			switch(column) {
-			case 0:
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 1:
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 2:
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 3:
-				if (game.content(row, column-3) == 1 || game.content(row, column-2) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column-2) == 1 || game.content(row, column-1) == 1 || game.content(row, column+1) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column+1) == 1 || game.content(row, column+2) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column+2) == 1 || game.content(row, column+3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column+1) == 1 || game.content(row-2, column+2) == 1 || game.content(row-3, column+3) == 1)
-					cpt++;
-				break;
-				
-			case 4:
-				if (game.content(row, column+2) == 1 || game.content(row, column+1) == 1 || game.content(row, column-1) == 1)
-					cpt++;
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 5:
-				if (game.content(row, column+1) == 1 || game.content(row, column-1) == 1 || game.content(row, column-2) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-				
-			case 6:
-				if (game.content(row-1, column) == 1 || game.content(row-2, column) == 1 || game.content(row-3, column) == 1)
-					cpt++;
-				if (game.content(row, column-1) == 1 || game.content(row, column-2) == 1 || game.content(row, column-3) == 1)
-					cpt++;
-				if (game.content(row-1, column-1) == 1 || game.content(row-2, column-2) == 1 || game.content(row-3, column-3) == 1)
-					cpt++;
-				break;
-			}
-			
-			break;
 		}
-		
-		
-	
-		
+
+
+
+
 		return cpt;
 	}
-	
-	
-	
-	
+
+
+
+
 	//function returning the best move for a given BeliefState
 	public static int findNextMove(BeliefState game) {
 		ExploredSet path = new ExploredSet();
 
-		
+
 		ContingencyPlan plan = orSearch(game,new ArrayList<BeliefState>(),1);
-		
+
 		/*
 		ContingencyPlan bestPlan = null;
-		
-		
+
+
 		//Search of the best plan in the plan of action obtained after or-and-search
 		float best_C_value=Float.NEGATIVE_INFINITY;
 		for (Entry<BeliefState,ContingencyPlan> subplan : plan.getPlan().entrySet()){
@@ -1381,8 +1381,8 @@ public class AI{
 		*/
 		//System.out.println(plan.getPlan().size());
 
-		
-        return plan.action;
+
+		return plan.action;
 	}
 
 
@@ -1399,178 +1399,178 @@ public class AI{
 
 //Première idée d'heuristique
 
-public static float heuristic2(GameState game) {
-	int heuristic_value = 0;
-	
-	//On va calculer pour chaque case jouable une valeur qui nous donnera une estimation de l'utilité
-	for (int column = 0; column < 7; column++) {
-		
-		//On cherche la première ligne vide sur la colonne j
-		for (int row = 0; row < 6 && game.content(row, column) != 0; row++) {
-			
-			//si la colonne n'est pas remplie
-			if (row < 6)
-				heuristic_value += compute_row(game, row, column) + compute_column(game, row, column) + compute_diag(game, row, column);
-			
+	public static float heuristic2(GameState game) {
+		int heuristic_value = 0;
+
+		//On va calculer pour chaque case jouable une valeur qui nous donnera une estimation de l'utilité
+		for (int column = 0; column < 7; column++) {
+
+			//On cherche la première ligne vide sur la colonne j
+			for (int row = 0; row < 6 && game.content(row, column) != 0; row++) {
+
+				//si la colonne n'est pas remplie
+				if (row < 6)
+					heuristic_value += compute_row(game, row, column) + compute_column(game, row, column) + compute_diag(game, row, column);
+
+			}
 		}
-	}
-	return game.proba()*((float) heuristic_value);
+		return game.proba()*((float) heuristic_value);
 	}
 
 
-/* Calcule la valeur d'utilité sur la ligne concernée */
-public static int compute_row(GameState game, int row, int column) {
-	int res = 0;
-	
-	switch(column) {
-	
-	case 0:
-		//à droite
-		if (game.content(row, column+1) == 2) res+=2;
-		else if (game.content(row, column+1) == 0) res+=1;
-		break;
-		
-	case 6:
-		//à gauche
-		if (game.content(row, column-1) == 2) res+=2;
-		else if (game.content(row, column-1) == 0) res+=1;
-		break;
-		
-	default:
-		//à droite
-		if (game.content(row, column+1) == 2) res+=2;
-		else if (game.content(row, column+1) == 0) res+=1;
-		//à gauche
-		if (game.content(row, column-1) == 2) res+=2;
-		else if (game.content(row, column-1) == 0) res+=1;
-		break;
-	}
-	
-	return res;
-}
+	/* Calcule la valeur d'utilité sur la ligne concernée */
+	public static int compute_row(GameState game, int row, int column) {
+		int res = 0;
 
-/* calcule la valeur d'utilité sur la colonne concernée */
-public static int compute_column(GameState game, int row, int column) {
-	int res = 0;
-	
-	switch(row) {
-	
-	//il n'y a rien en-dessous
-	case 0:
-		break;
-		
-	default:
-		//en-dessous
-		if (game.content(row-1, column) == 2) res+=2;
-		else if (game.content(row-1, column) == 0) res+=1;
-		break;
-	}
-	
-	return res;
-}
+		switch(column) {
 
-/* calcule la valeur d'utilité sur les diagonales concernées */
-public static int compute_diag(GameState game, int row, int column) {
-	int res = 0;
-	
-	switch(column) {
-	
-	case 0:
-		
+			case 0:
+				//à droite
+				if (game.content(row, column+1) == 2) res+=2;
+				else if (game.content(row, column+1) == 0) res+=1;
+				break;
+
+			case 6:
+				//à gauche
+				if (game.content(row, column-1) == 2) res+=2;
+				else if (game.content(row, column-1) == 0) res+=1;
+				break;
+
+			default:
+				//à droite
+				if (game.content(row, column+1) == 2) res+=2;
+				else if (game.content(row, column+1) == 0) res+=1;
+				//à gauche
+				if (game.content(row, column-1) == 2) res+=2;
+				else if (game.content(row, column-1) == 0) res+=1;
+				break;
+		}
+
+		return res;
+	}
+
+	/* calcule la valeur d'utilité sur la colonne concernée */
+	public static int compute_column(GameState game, int row, int column) {
+		int res = 0;
+
 		switch(row) {
-			
-		case 0:
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			break;
-			
-		case 5:
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			break;
-			
-		default:
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			break;
+
+			//il n'y a rien en-dessous
+			case 0:
+				break;
+
+			default:
+				//en-dessous
+				if (game.content(row-1, column) == 2) res+=2;
+				else if (game.content(row-1, column) == 0) res+=1;
+				break;
 		}
-		break;
-		
-	
-	case 6:
-		
-		switch(row) {
-		
-		case 0:
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			break;
-			
-		case 5:
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			break;
-			
-		default:
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			break;
-		}
-		break;
-		
-		
-	default:
-		
-		switch(row) {
-		
-		case 0:
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			break;
-			
-		case 5:
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			break;
-			
-		default:
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			break;
-		
-		}
-	
+
+		return res;
 	}
-	return res;
-}
+
+	/* calcule la valeur d'utilité sur les diagonales concernées */
+	public static int compute_diag(GameState game, int row, int column) {
+		int res = 0;
+
+		switch(column) {
+
+			case 0:
+
+				switch(row) {
+
+					case 0:
+						//en haut à droite
+						if (game.content(row+1, column+1) == 2) res+=2;
+						else if (game.content(row+1, column+1) == 0) res+=1;
+						break;
+
+					case 5:
+						//en bas à droite
+						if (game.content(row-1, column+1) == 2) res+=2;
+						else if (game.content(row-1, column+1) == 0) res+=1;
+						break;
+
+					default:
+						//en haut à droite
+						if (game.content(row+1, column+1) == 2) res+=2;
+						else if (game.content(row+1, column+1) == 0) res+=1;
+						//en bas à droite
+						if (game.content(row-1, column+1) == 2) res+=2;
+						else if (game.content(row-1, column+1) == 0) res+=1;
+						break;
+				}
+				break;
+
+
+			case 6:
+
+				switch(row) {
+
+					case 0:
+						//en haut à gauche
+						if (game.content(row+1, column-1) == 2) res+=2;
+						else if (game.content(row+1, column-1) == 0) res+=1;
+						break;
+
+					case 5:
+						//en bas à gauche
+						if (game.content(row-1, column-1) == 2) res+=2;
+						else if (game.content(row-1, column-1) == 0) res+=1;
+						break;
+
+					default:
+						//en haut à gauche
+						if (game.content(row+1, column-1) == 2) res+=2;
+						else if (game.content(row+1, column-1) == 0) res+=1;
+						//en bas à gauche
+						if (game.content(row-1, column-1) == 2) res+=2;
+						else if (game.content(row-1, column-1) == 0) res+=1;
+						break;
+				}
+				break;
+
+
+			default:
+
+				switch(row) {
+
+					case 0:
+						//en haut à droite
+						if (game.content(row+1, column+1) == 2) res+=2;
+						else if (game.content(row+1, column+1) == 0) res+=1;
+						//en haut à gauche
+						if (game.content(row+1, column-1) == 2) res+=2;
+						else if (game.content(row+1, column-1) == 0) res+=1;
+						break;
+
+					case 5:
+						//en bas à gauche
+						if (game.content(row-1, column-1) == 2) res+=2;
+						else if (game.content(row-1, column-1) == 0) res+=1;
+						//en bas à droite
+						if (game.content(row-1, column+1) == 2) res+=2;
+						else if (game.content(row-1, column+1) == 0) res+=1;
+						break;
+
+					default:
+						//en bas à gauche
+						if (game.content(row-1, column-1) == 2) res+=2;
+						else if (game.content(row-1, column-1) == 0) res+=1;
+						//en bas à droite
+						if (game.content(row-1, column+1) == 2) res+=2;
+						else if (game.content(row-1, column+1) == 0) res+=1;
+						//en haut à droite
+						if (game.content(row+1, column+1) == 2) res+=2;
+						else if (game.content(row+1, column+1) == 0) res+=1;
+						//en haut à gauche
+						if (game.content(row+1, column-1) == 2) res+=2;
+						else if (game.content(row+1, column-1) == 0) res+=1;
+						break;
+
+				}
+
+		}
+		return res;
+	}
 }
