@@ -1,3 +1,4 @@
+import javax.swing.*;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -521,8 +522,9 @@ public class AI{
 
 	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
 	static ExploredSet exploredSet =new ExploredSet();
-	final static int DEPTH = 2;
-	final static int HEURISTIC[][] = new int[][] {{3,4,5,7,5,4,3},
+	final static int DEPTH = 1;
+
+	final static int[][] HEURISTIC = new int[][] {{3,4,5,7,5,4,3},
 		   										  {4,6,8,10,8,6,4},
 		   										  {5,8,11,13,11,8,5},
 		   										  {5,8,11,13,11,8,5},
@@ -543,16 +545,100 @@ public class AI{
 		return value_of_belief_state;
 	}
 
-	
+
+	public static double maxValue(BeliefState state, double alpha, double beta,int depth_of_prediction){
+		if (state.isFull() || state.isGameOver() || depth_of_prediction>DEPTH){
+			return heuristic(state);
+		}
+		if (exploredSet.get(state) != null) {
+			return exploredSet.get(state);
+		}
+
+		double v = Double.NEGATIVE_INFINITY;
+		ArrayList<Integer> moves = state.getMoves();
+		sort_moves(moves,state);
+		for ( Integer action :moves){
+			Results beliefStatesAfterAction =state.putPiecePlayer(action);
+
+			double minimalValue=Double.POSITIVE_INFINITY;
+
+			for (BeliefState b: beliefStatesAfterAction) {
+				minimalValue = Math.min(minimalValue, minValue(b, alpha, beta, depth_of_prediction+1));
+
+				if (minimalValue<=alpha){
+					exploredSet.put(b,(float) minimalValue);
+					return minimalValue;
+				}
+			}
+			v=Math.max(v,minimalValue);
+			if (v>=beta){
+				exploredSet.put(state,(float) v);
+				return v;
+			}
+			alpha=Math.max(alpha,v);
+		}
+		exploredSet.put(state,(float) v);
+		return v;
+	}
+
+	public static double minValue(BeliefState state, double alpha, double beta,int depth_of_prediction){
+		if (state.isFull() || state.isGameOver() || depth_of_prediction>DEPTH){
+			return heuristic(state);
+		}
+		if (exploredSet.get(state) != null) {
+			return exploredSet.get(state);
+		}
+
+		double v = Double.POSITIVE_INFINITY;
+		Results beliefStatesAfterAction =state.predict();
+		for (BeliefState b: beliefStatesAfterAction) {
+			double valueOfb= maxValue(b, alpha,beta,depth_of_prediction);
+			v=Math.min(v,valueOfb);
+			if (v<=alpha){
+				exploredSet.put(b,(float) valueOfb);
+				return v;
+			}
+			beta=Math.min(beta,v);
+		}
+		exploredSet.put(state,(float)v);
+		return v;
+	}
+
+	public static int alphaBetaSearch(BeliefState state) {
+		ArrayList<Integer> moves = state.getMoves();
+		int bestMove = 0;
+		double bestV=Double.NEGATIVE_INFINITY;
+		double alpha = Double.NEGATIVE_INFINITY;
+		double beta = Double.POSITIVE_INFINITY;
+
+		for (Integer action : moves) {
+			Results beliefStatesAfterAction =state.putPiecePlayer(action);
+			double v=Double.POSITIVE_INFINITY;
+			for (BeliefState b: beliefStatesAfterAction) {
+				double tp = minValue(b, alpha, beta, 0);
+				if(tp<v){
+					v=tp;
+				}
+			}
+			if (v>bestV){
+				bestMove=action;
+				bestV=v;
+			}
+		}
+		return bestMove;
+	}
+
+
+
 	//insertion sort tel que l'action la plus prometteuse est placée en première
 	public static void sort_moves(ArrayList<Integer> moves, BeliefState state) {
 		int n = moves.size();
 		for (int i = 0; i < n; i++) {
 			Integer key = moves.get(i);
-			double key_value = heuristic(state.copy().putPiecePlayer(key));
+			double key_value = heuristic(state.putPiecePlayer(key));
 			int j = i - 1;
-			
-			while (j >= 0 && heuristic(state.copy().putPiecePlayer(moves.get(j))) < key_value) {
+
+			while (j >= 0 && heuristic(state.putPiecePlayer(moves.get(j))) < key_value) {
 				moves.set(j+1, moves.get(j));
 				j--;
 			}
@@ -628,6 +714,13 @@ public class AI{
 			for (GameState state : beliefState)
 				res += heuristic(state);
 		}
+		return res;
+	}
+
+	public static double heuristic(BeliefState beliefState) {
+		double res = 0.0f;
+		for (GameState state : beliefState){
+				res += heuristic(state);}
 		return res;
 	}
 		
@@ -1403,7 +1496,7 @@ public class AI{
 		//System.out.println(plan.getPlan().size());
 
 		
-        return plan.action;
+        return alphaBetaSearch(game);
 	}
 
 
@@ -1666,21 +1759,15 @@ public static int compute_bonus_columns(GameState state){
     int col_count =0;
     for(int i=0; i<7; i++){
         for (int j=0; j<3; j++){
-            if(state.content(i,j)==2){
-                if(state.content(i,j+1)==2){
-                    if(state.content(i,j+2)==2){
-                        if(state.content(i,j+3)==2){
-                            col_count +=3;
-                        }
-                    }
-                    else{
-                        col_count +=2;
-                    }
-                }
-                else if(state.content(i,j+1)==0){
-                    col_count +=1;
-                }
-            }
+            if (state.content(j,i)==2){
+				if (state.content(j+1,i)==2){
+					if (state.content(j+2,i)==2){
+						if(state.content(j+3,i)==0) col_count+=5;
+					}
+					else if (state.content(j+2,i)==0) col_count+=3;
+				}
+				else if (state.content(j+1,i)==0){col_count+=1;}
+			}
         }
     }
     return col_count;
@@ -1688,20 +1775,20 @@ public static int compute_bonus_columns(GameState state){
 
 public static int compute_bonus_rows(GameState state){
     int row_count=0;
-    for(int i=0; i<4; i++){
-        for (int j=0; j<6; j++){
+    for(int i=0; i<6; i++){
+        for (int j=0; j<5; j++){
             if(state.content(i,j)==2){
-                if(state.content(i+1,j)==2){
-                    if(state.content(i+2,j)==2){
-                        if(state.content(i+3,j)==2){
-                            row_count+=3;
+                if(state.content(i,j+1)==2){
+                    if(state.content(i,j+2)==2){
+                        if(state.content(i,j+3)==0){
+                            row_count+=5;
                         }
                     }
-                    else{
-                        row_count+=2;
+                    else if(state.content(i,j+2)==0){
+                        row_count+=3;
                     }
                 }
-                else if(state.content(i,j)==0){
+                else if(state.content(i,j+1)==0){
                     row_count+=1;
                 }
             }
