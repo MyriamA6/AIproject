@@ -543,16 +543,16 @@ public class AI{
 		return value_of_belief_state;
 	}
 
-	
+
 	//insertion sort tel que l'action la plus prometteuse est placée en première
 	public static void sort_moves(ArrayList<Integer> moves, BeliefState state) {
 		int n = moves.size();
 		for (int i = 0; i < n; i++) {
 			Integer key = moves.get(i);
-			double key_value = heuristic(state.copy().putPiecePlayer(key));
+			double key_value = heuristic(state.putPiecePlayer(key));
 			int j = i - 1;
-			
-			while (j >= 0 && heuristic(state.copy().putPiecePlayer(moves.get(j))) < key_value) {
+
+			while (j >= 0 && heuristic(state.putPiecePlayer(moves.get(j))) < key_value) {
 				moves.set(j+1, moves.get(j));
 				j--;
 			}
@@ -624,11 +624,14 @@ public class AI{
 		
 	public static double heuristic(Results predictions) {
 		double res = 0.0f;
+		int nbState=0;
 		for (BeliefState beliefState : predictions) {
-			for (GameState state : beliefState)
+			for (GameState state : beliefState) {
 				res += heuristic(state);
+				nbState++;
+			}
 		}
-		return res;
+		return res/nbState;
 	}
 		
 	
