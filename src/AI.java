@@ -579,7 +579,7 @@ public class AI{
 	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
 	static ExploredSet exploredSet =new ExploredSet();
 	//maximum depth of search of the algorithm (it is better if it is set on 1)
-	final static int DEPTH = 4; 
+	final static int DEPTH = 4;
 	/* heuristic table that will be used in the future computations
 	 * each entry of the table is the number of lines of 4 that the case is on
 	 * for example, for the entry in the upper left corner there is the number 3 because there are three 4-lines starting at 0
@@ -600,7 +600,7 @@ public class AI{
 		   										  {4,6,8,10,8,6,4},
 		   										  {3,4,5,7,5,4,3}};
     
-    //weight for columns : We put weight on pawns that are positioned on the sides of the board instead of the center to avoid a concentration of pawns in the three centered columns.
+    //weights for columns : We put weight on pawns that are positioned on the sides of the board instead of the center to avoid a concentration of pawns in the three centered columns.
     final static double cweights[] = new double[] {1.1, 1., 0.9, 0.8, 0.9, 1, 1.1}; 
     //weights for rows : We put weight on pawns that are positioned at the bottom of the board because they are more likely to form a 4-disc line in early game.
     final static double rweights[] = new double[] {1.2, 1., 0.7, 0.5, 0.3, 0.1};    
@@ -609,7 +609,7 @@ public class AI{
 	}
 
 
-	/** Perform the computation of an heuristic value for a given GameState 
+	/** Performs the computation of a heuristic value for a given GameState
 	 *  @param game the game state which is currently considered
 	 *  @return the heuristic value of the game state 
 	 */
@@ -626,8 +626,8 @@ public class AI{
 				if (game.content(row, column) == 2)
 					
 					//the computation is : weight x ( #{number of lines of 4 discs that the red pawn is on} - #{number of lines of 4 discs that the red pawn is on AND that a yellow pawn is blocking} )
-					//the weights are such that it is risker to play at the top than at the bottom of the board and to counterbalance the fact that the agent will try to play only in the middle
-					//and it is risker to play in the centre of the board than on its sides
+					//the weights are such that it is riskier to play at the top than at the bottom of the board and to counterbalance the fact that the agent will try to play only in the middle
+					//and it is riskier to play in the centre of the board than on its sides
 					heuristic_value += cweights[column] * rweights[row] *(HEURISTIC[row][column] - scan(game, row, column, 1)); 
 				
 				//If the pawn at position (row, column) is yellow, we penalize the heuristic value following the previous explanation
@@ -639,7 +639,7 @@ public class AI{
 	}
 	
 	
-	/** Perform the computation of an heuristic value for a given BeliefState : we sum the heuristic value of each game state composing the belief state 
+	/** Performs the computation of a heuristic value for a given BeliefState : we sum the heuristic value of each game state composing the belief state
 	 *  @param currentBeliefState the belief state which is currently considered
 	 *  @return the heuristic value of the belief state 
 	 */
@@ -652,7 +652,7 @@ public class AI{
 	}
 	
 	
-	/** Perform the computation of an heuristic value for a given Results object : we sum the heuristic value of each belief state
+	/** Performs the computation of a heuristic value for a given Results object : we sum the heuristic value of each belief state
 	 *  @param predictions the Results object that we are dealing with  (result of the function predict())
 	 *  @return the heuristic value of the Results object
 	 */
@@ -667,7 +667,7 @@ public class AI{
 	}
 	
 	/**
-	 * Perform the computation of an heuristic value for a given hash map object : we sum the heuristic value of each contingency plan
+	 * Performs the computation of a heuristic value for a given hash map object : we sum the heuristic value of each contingency plan
 	 * @param hmap a hash map that maps belief states to contingency plans
 	 * @return a utility value
 	 */
@@ -692,7 +692,7 @@ public class AI{
 	
 	
 	/**
-	 * Sorts (Insertion Sort) the ArrayList<Integer> moves in decreasing order such that the first move leads to a state with the highest heuristic value when applied the BeliefState state.
+	 * Sorts (Insertion Sort) the ArrayList<Integer> moves in decreasing order such that the first move of the BeliefState state leads to a state with the highest heuristic value.
 	 * @param moves ArrayList of integers which are the moves that are allowed in the current situation of the belief state
 	 * @param state belief state that is currently considered
 	 */
@@ -715,7 +715,7 @@ public class AI{
 	}
 	
 	/**
-	 * Performs the AndOrSearch algorithm at a Or-node level
+	 * Performs the AndOrSearch algorithm at an Or-node level
 	 * @param currentBeliefState The current belief state of the game
 	 * @param path Set of belief states that have already been visited
 	 * @param depth_of_prediction Depth at which we should stop the search
@@ -776,11 +776,11 @@ public class AI{
 
 	
 	/**
-	 * performs the AndOrSearch algorithm at a And-level node
+	 * performs the AndOrSearch algorithm at an And-level node
 	 * @param currentBeliefStates Results object that is a set of belief states that results from a particular action
 	 * @param path Set of belief states that have already been visited
 	 * @param depth_of_prediction Depth at which we should stop the search
-	 * @return A hash table that maps to each belief state that may exist after performing a particular action a contingency plan
+	 * @return A hash table that maps to each belief state that may exist, after performing a particular action, a contingency plan
 	 */
 	public static HashMap<BeliefState, ContingencyPlan> andSearch(Results currentBeliefStates,ArrayList<BeliefState> path, int depth_of_prediction) {
 		
@@ -821,7 +821,7 @@ public class AI{
 	
 	
 	/**
-	 * Return the best action to take in the current situation
+	 * Returns the best action to take in the current situation
 	 * @param game the current game state
 	 * @return an integer which represents the column to play
 	 */
@@ -831,12 +831,12 @@ public class AI{
 	}
 	
 	/**
-	 * Compute a penalty for our AI (or for the opponent depending on the value of the value of the parameter opponent) that compute the number of valid 4-disc lines that is blocked by an opponent pawn.
+	 * Computes a penalty for our AI (or for the opponent depending on the value of the value of the parameter opponent) that compute the number of valid 4-disc lines that is blocked by an opponent pawn.
 	 * We enumerate each position using two nested switch-case structures. Each if-condition verifies if at least one element of the 4-disc line considered is occupied by an opponent piece. If it is the case, we increment the value of cpt.
 	 * @param game the game state we consider
 	 * @param row the row considered
 	 * @param column the column considered
-	 * @param opponent if 1, the computation is made for our AI. Otherwise it is the reverse
+	 * @param opponent if 1, the computation is made for our AI. Otherwise, it is the reverse
 	 * @return the number of valid 4-disc lines that is blocked by an opponent pawn
 	 */
 	public static int scan(GameState game, int row, int column, int opponent) {

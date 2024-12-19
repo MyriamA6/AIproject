@@ -292,7 +292,6 @@ public class Connect4UI {
 		            	state.move(aiPlay);
 		            	beliefStates = beliefState.predict();
 		            	beliefState.setStates(BeliefState.filter(beliefStates, state.getState()));
-		            	//System.out.println(beliefState.toString());
 		            	board.repaint();
 		            	if(!state.getGameOver() && state.getRedsTurn() == state.getState().turn())
 		            		System.out.println("problem turn");
