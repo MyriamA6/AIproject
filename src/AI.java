@@ -638,7 +638,7 @@ public class AI{
 	public static double heuristic(GameState game) {
 		int heuristic_value = 0;						   
 		
-		//calcul de l'utilité en fonction des pions rouges.
+		//calcul de l'utilité en fonction des pions rouges
 		for (int row = 0; row < 6; row++) {
 			for (int column = 0; column < 7; column++) {
 				if (game.content(row, column) == 2)
