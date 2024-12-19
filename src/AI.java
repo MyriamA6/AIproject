@@ -576,7 +576,7 @@ class ContingencyPlan{
 
 
 public class AI{
-	//maximum depth of search of the algorithm (it is better in terms of running time if it is set on 1 or 2)
+	//maximum depth of search of the algorithm (it is better in terms of running time if it is set on 1 or 2). It also works with higher depths but the computation time will increase and the statistics of the AI will slightly decrease.
 	final static int DEPTH = 2;
 	/* heuristic table that will be used in the future computations
 	 * each entry of the table is the number of lines of 4 that the case is on
