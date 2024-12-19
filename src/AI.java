@@ -579,7 +579,7 @@ public class AI{
 	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
 	static ExploredSet exploredSet =new ExploredSet();
 	//maximum depth of search of the algorithm (it is better if it is set on 1)
-	final static int DEPTH = 2; 
+	final static int DEPTH = 1; 
 	/* heuristic table that will be used in the future computations
 	 * each entry of the table is the number of lines of 4 that the case is on
 	 * for example, for the entry in the upper left corner there is the number 3 because there are three 4-lines starting at 0
@@ -911,7 +911,7 @@ public class AI{
 					cpt++;
 				if (game.content(row, column-1) == opponent || game.content(row, column-2) == opponent || game.content(row, column-3) == opponent)
 					cpt++;
-				if (game.content(row+1, column+1) == opponent || game.content(row+2, column+2) == opponent || game.content(row+3, column+3) == opponent)
+				if (game.content(row+1, column-1) == opponent || game.content(row+2, column-2) == opponent || game.content(row+3, column-3) == opponent)
 					cpt++;
 				break;
 			}
@@ -1462,7 +1462,7 @@ public class AI{
 					cpt++;
 				if (game.content(row, column+1) == opponent || game.content(row, column+2) == opponent || game.content(row, column+3) == opponent)
 					cpt++;
-				if (game.content(row-1, column-1) == opponent || game.content(row-2, column-2) == opponent || game.content(row-3, column-3) == opponent)
+				if (game.content(row-1, column+1) == opponent || game.content(row-2, column+2) == opponent || game.content(row-3, column+3) == opponent)
 					cpt++;
 				break;
 				
