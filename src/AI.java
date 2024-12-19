@@ -492,6 +492,7 @@ class BeliefState implements Comparable<BeliefState>, Iterable<GameState>{
 
 class ContingencyPlan{
 	Integer action;
+	//to each belief state that is coming from the action we associate a contingency plan 
 	HashMap<BeliefState, ContingencyPlan> plan=new HashMap<>();
 	double heuristic_value;
 	boolean is_leaf;
@@ -575,11 +576,8 @@ class ContingencyPlan{
 
 
 public class AI{
-
-	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
-	static ExploredSet exploredSet =new ExploredSet();
-	//maximum depth of search of the algorithm (it is better if it is set on 1)
-	final static int DEPTH = 4;
+	//maximum depth of search of the algorithm (it is better in terms of running time if it is set on 1 or 2)
+	final static int DEPTH = 2; 
 	/* heuristic table that will be used in the future computations
 	 * each entry of the table is the number of lines of 4 that the case is on
 	 * for example, for the entry in the upper left corner there is the number 3 because there are three 4-lines starting at 0
@@ -626,8 +624,8 @@ public class AI{
 				if (game.content(row, column) == 2)
 					
 					//the computation is : weight x ( #{number of lines of 4 discs that the red pawn is on} - #{number of lines of 4 discs that the red pawn is on AND that a yellow pawn is blocking} )
-					//the weights are such that it is riskier to play at the top than at the bottom of the board and to counterbalance the fact that the agent will try to play only in the middle
-					//and it is riskier to play in the centre of the board than on its sides
+					//the weights are such that it is more riskier to play at the top than at the bottom of the board and to counterbalance the fact that the agent will try to play only in the middle
+					//and it is more riskier to play in the centre of the board than on its sides
 					heuristic_value += cweights[column] * rweights[row] *(HEURISTIC[row][column] - scan(game, row, column, 1)); 
 				
 				//If the pawn at position (row, column) is yellow, we penalize the heuristic value following the previous explanation
@@ -717,11 +715,10 @@ public class AI{
 	/**
 	 * Performs the AndOrSearch algorithm at an Or-node level
 	 * @param currentBeliefState The current belief state of the game
-	 * @param path Set of belief states that have already been visited
 	 * @param depth_of_prediction Depth at which we should stop the search
 	 * @return a ContingencyPlan object which is composed of an action and a hash table which maps belief states to contingency plans
 	 */
-	public static ContingencyPlan orSearch(BeliefState currentBeliefState, ArrayList<BeliefState> path,int depth_of_prediction) {
+	public static ContingencyPlan orSearch(BeliefState currentBeliefState, int depth_of_prediction) {
 		HashMap<BeliefState, ContingencyPlan> subplan;
 		//the plan resulting from the and-search
 		ContingencyPlan plan_res;
@@ -732,26 +729,19 @@ public class AI{
 		if (depth_of_prediction > DEPTH || currentBeliefState.isGameOver() || currentBeliefState.isFull()) 
 			return new ContingencyPlan();
 		
-		/*
-		//If the belief state has already been visited we return null value
-		if (path.contains(currentBeliefState))
-			return null;
-		
-		path.add(currentBeliefState);
-		*/
-		
 		ArrayList<Integer> moves = currentBeliefState.getMoves();
 		
 		if (moves.size() == 1)
 			return new ContingencyPlan(moves.get(0));
 		
+		//we sort the moves in the decreasing order such that the most promising option is provided first
 		sort_moves(moves, currentBeliefState);
 		
 		//We consider each possible action...
 		for (Integer action : moves) {
 			
 			//we perform the and-or search algorithm for the and-node which results of the action of putting the piece action on the board
-			subplan = andSearch(currentBeliefState.copy().putPiecePlayer(action), path, depth_of_prediction+1);
+			subplan = andSearch(currentBeliefState.copy().putPiecePlayer(action), depth_of_prediction+1);
 			
 			if (subplan != null) {
 				
@@ -778,11 +768,10 @@ public class AI{
 	/**
 	 * performs the AndOrSearch algorithm at an And-level node
 	 * @param currentBeliefStates Results object that is a set of belief states that results from a particular action
-	 * @param path Set of belief states that have already been visited
 	 * @param depth_of_prediction Depth at which we should stop the search
 	 * @return A hash table that maps to each belief state that may exist, after performing a particular action, a contingency plan
 	 */
-	public static HashMap<BeliefState, ContingencyPlan> andSearch(Results currentBeliefStates,ArrayList<BeliefState> path, int depth_of_prediction) {
+	public static HashMap<BeliefState, ContingencyPlan> andSearch(Results currentBeliefStates, int depth_of_prediction) {
 		
 		HashMap<BeliefState, ContingencyPlan> hmap = new HashMap<BeliefState,ContingencyPlan>();
 		ContingencyPlan subplan;
@@ -808,7 +797,7 @@ public class AI{
 			for (BeliefState substate : predictions) {
 				
 				//we retrieve the subplan associated with this substate
-				subplan = orSearch(substate, path, depth_of_prediction+1);
+				subplan = orSearch(substate, depth_of_prediction+1);
 				if (subplan == null)
 					return null;
 				
@@ -826,7 +815,7 @@ public class AI{
 	 * @return an integer which represents the column to play
 	 */
 	public static int findNextMove(BeliefState game) {
-		ContingencyPlan plan = orSearch(game,new ArrayList<BeliefState>(),1);
+		ContingencyPlan plan = orSearch(game,1);
         return plan.action;
 	}
 	
