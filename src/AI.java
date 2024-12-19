@@ -579,7 +579,7 @@ public class AI{
 	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
 	static ExploredSet exploredSet =new ExploredSet();
 	//maximum depth of search of the algorithm (it is better if it is set on 1)
-	final static int DEPTH = 1; 
+	final static int DEPTH = 4; 
 	/* heuristic table that will be used in the future computations
 	 * each entry of the table is the number of lines of 4 that the case is on
 	 * for example, for the entry in the upper left corner there is the number 3 because there are three 4-lines starting at 0
@@ -729,14 +729,16 @@ public class AI{
 		ContingencyPlan max_plan = new ContingencyPlan();
 		
 		//To stop the search when the maximum depth is reached or if the game is over, we return an empty plan 
-		if (depth_of_prediction > DEPTH || currentBeliefState.isGameOver()) 
+		if (depth_of_prediction > DEPTH || currentBeliefState.isGameOver() || currentBeliefState.isFull()) 
 			return new ContingencyPlan();
 		
+		/*
 		//If the belief state has already been visited we return null value
 		if (path.contains(currentBeliefState))
 			return null;
 		
 		path.add(currentBeliefState);
+		*/
 		
 		ArrayList<Integer> moves = currentBeliefState.getMoves();
 		
@@ -792,6 +794,9 @@ public class AI{
 		//for each belief state in the Results object...
 		for (BeliefState state : currentBeliefStates) {
 			
+			if (state.isGameOver() || state.isFull())
+				continue;
+			
 			//We predict the move of the other player
 			Results predictions = state.copy().predict();
 			
@@ -815,6 +820,15 @@ public class AI{
 	}
 	
 	
+	/**
+	 * Return the best action to take in the current situation
+	 * @param game the current game state
+	 * @return an integer which represents the column to play
+	 */
+	public static int findNextMove(BeliefState game) {
+		ContingencyPlan plan = orSearch(game,new ArrayList<BeliefState>(),1);
+        return plan.action;
+	}
 	
 	/**
 	 * Compute a penalty for our AI (or for the opponent depending on the value of the value of the parameter opponent) that compute the number of valid 4-disc lines that is blocked by an opponent pawn.
@@ -1544,16 +1558,5 @@ public class AI{
 			break;
 		}
 		return cpt;
-	}
-	
-	
-	/**
-	 * Return the best action to take in the current situation
-	 * @param game the current game state
-	 * @return an integer which represents the column to play
-	 */
-	public static int findNextMove(BeliefState game) {
-		ContingencyPlan plan = orSearch(game,new ArrayList<BeliefState>(),1);
-        return plan.action;
 	}
 }
