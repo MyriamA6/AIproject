@@ -577,7 +577,7 @@ class ContingencyPlan{
 
 public class AI{
 	//maximum depth of search of the algorithm (it is better in terms of running time if it is set on 1 or 2)
-	final static int DEPTH = 2; 
+	final static int DEPTH = 2;
 	/* heuristic table that will be used in the future computations
 	 * each entry of the table is the number of lines of 4 that the case is on
 	 * for example, for the entry in the upper left corner there is the number 3 because there are three 4-lines starting at 0
