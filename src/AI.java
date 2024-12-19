@@ -1,6 +1,18 @@
 import java.util.*;
 import java.util.Map.Entry;
 
+/* 
+ * AI PROJECT - M1 I2D, MIAGE
+ * 
+ * Group Members:
+ * 		- ACHOUR Myriam 
+ * 		- FERNANDES MACEDO Gabriella
+ * 		- PERIANAYAGASSAMY Oscar
+ * 		- SURESH Sabana
+ * 
+ */
+
+
 
 /**
  * Class used to model the set of belief states already visited and to keep track of their values (in order to avoid visiting multiple times the same states)
@@ -482,25 +494,52 @@ class ContingencyPlan{
 	Integer action;
 	HashMap<BeliefState, ContingencyPlan> plan=new HashMap<>();
 	double heuristic_value;
+	boolean is_leaf;
 
 	public ContingencyPlan() {
 		this.heuristic_value = Double.NEGATIVE_INFINITY;
+		this.is_leaf = true;
 	}
 
 	public ContingencyPlan(Integer action, HashMap<BeliefState, ContingencyPlan> plan, double heuristic_value) {
 		this.action = action;
 		this.plan = plan;
 		this.heuristic_value = heuristic_value;
+		this.is_leaf = false;
 	}
-
 
 	public ContingencyPlan(Integer action) {
 		this.action = action;
 		this.plan = new HashMap<BeliefState, ContingencyPlan>();
+		this.is_leaf = false;
 	}
 
+	public void setIs_leaf(boolean is_leaf) {
+		this.is_leaf = is_leaf;
+	}
+	
+	public void setAction(Integer action) {
+		this.action = action;
+	}
+	
+	public void setPlan(HashMap<BeliefState, ContingencyPlan> plan) {
+		this.plan = plan;
+	}
+	
 	public void setHeuristicValue(double heuristic_value) {
 		this.heuristic_value = heuristic_value;
+	}
+	
+	public boolean getIsLeaf() {
+		return this.is_leaf;
+	}
+	
+	public Integer getAction() {
+		return action;
+	}
+	
+	public HashMap<BeliefState, ContingencyPlan> getPlan() {
+		return plan;
 	}
 	
 	public double getHeuristicValue() {
@@ -510,9 +549,27 @@ class ContingencyPlan{
 	public void add(BeliefState state, ContingencyPlan subplan) {
 		this.plan.put(state, subplan);
 	}
-
-	public HashMap<BeliefState, ContingencyPlan> getPlan() {
-		return plan;
+	
+	public void isLeaf() {
+		this.is_leaf = true;
+	}	
+	
+	public double heuristic() {
+		//this value should not be used in computations, it is a warning value
+		if (this.is_leaf)
+			return Double.NEGATIVE_INFINITY;
+		
+		double heuristic_value = 0.;
+		
+		for (BeliefState state : this.plan.keySet()) {
+			if (this.plan.get(state).is_leaf)
+				heuristic_value += AI.heuristic(state);
+				
+			else
+				heuristic_value += this.plan.get(state).heuristic();
+				
+		}
+		return heuristic_value;
 	}
 }
 
@@ -521,38 +578,135 @@ public class AI{
 
 	//exploredSet to keep the value of the BeliefState explored during orSearch and andSearch
 	static ExploredSet exploredSet =new ExploredSet();
-	final static int DEPTH = 2;
+	//maximum depth of search of the algorithm (it is better if it is set on 1)
+	final static int DEPTH = 2; 
+	/* heuristic table that will be used in the future computations
+	 * each entry of the table is the number of lines of 4 that the case is on
+	 * for example, for the entry in the upper left corner there is the number 3 because there are three 4-lines starting at 0
+	 *   _ _ _ _ _ _ _ 
+	 *  |0 1 1 1 * * *|
+	 *  |2 3 * * * * *|
+	 *  |2 * 3 * * * *|
+	 *  |2 * * 3 * * *|
+	 *  |* * * * * * *|
+	 *  |* * * * * * *|
+	 *   ‾ ‾ ‾ ‾ ‾ ‾ ‾
+	 *   The computation for the heuristic value will be detailed later
+	 */
 	final static int HEURISTIC[][] = new int[][] {{3,4,5,7,5,4,3},
 		   										  {4,6,8,10,8,6,4},
 		   										  {5,8,11,13,11,8,5},
 		   										  {5,8,11,13,11,8,5},
 		   										  {4,6,8,10,8,6,4},
 		   										  {3,4,5,7,5,4,3}};
-
+    
+    //weight for columns : We put weight on pawns that are positioned on the sides of the board instead of the center to avoid a concentration of pawns in the three centered columns.
+    final static double cweights[] = new double[] {1.1, 1., 0.9, 0.8, 0.9, 1, 1.1}; 
+    //weights for rows : We put weight on pawns that are positioned at the bottom of the board because they are more likely to form a 4-disc line in early game.
+    final static double rweights[] = new double[] {1.2, 1., 0.7, 0.5, 0.3, 0.1};    
+		   										  
 	public AI() {
 	}
 
 
-	//Method to compute the heuristic of a given beliefState
-	//Returns the maximum heuristic value of the potential GameState contained in the beliefState
-	public static double computeHeuristicForBeliefState(BeliefState currentBeliefState){
+	/** Perform the computation of an heuristic value for a given GameState 
+	 *  @param game the game state which is currently considered
+	 *  @return the heuristic value of the game state 
+	 */
+	public static double heuristic(GameState game) {
+		int heuristic_value = 0;						   
+		
+		//We consider each row...
+		for (int row = 0; row < 6; row++) {
+			
+			//...and each column
+			for (int column = 0; column < 7; column++) {
+				
+				//If the pawn at position (row, column) is red
+				if (game.content(row, column) == 2)
+					
+					//the computation is : weight x ( #{number of lines of 4 discs that the red pawn is on} - #{number of lines of 4 discs that the red pawn is on AND that a yellow pawn is blocking} )
+					//the weights are such that it is risker to play at the top than at the bottom of the board and to counterbalance the fact that the agent will try to play only in the middle
+					//and it is risker to play in the centre of the board than on its sides
+					heuristic_value += cweights[column] * rweights[row] *(HEURISTIC[row][column] - scan(game, row, column, 1)); 
+				
+				//If the pawn at position (row, column) is yellow, we penalize the heuristic value following the previous explanation
+				if (game.content(row, column) == 1)
+					heuristic_value -= cweights[column] * rweights[row] *(HEURISTIC[row][column] - scan(game, row, column, 2));
+			}
+		}
+		return game.proba()*((double) heuristic_value);
+	}
+	
+	
+	/** Perform the computation of an heuristic value for a given BeliefState : we sum the heuristic value of each game state composing the belief state 
+	 *  @param currentBeliefState the belief state which is currently considered
+	 *  @return the heuristic value of the belief state 
+	 */
+	public static double heuristic(BeliefState currentBeliefState){
 		double value_of_belief_state =0;
 		for(GameState game : currentBeliefState) {
 			value_of_belief_state += heuristic(game);
 		}
 		return value_of_belief_state;
 	}
-
 	
-	//insertion sort tel que l'action la plus prometteuse est placée en première
+	
+	/** Perform the computation of an heuristic value for a given Results object : we sum the heuristic value of each belief state
+	 *  @param predictions the Results object that we are dealing with  (result of the function predict())
+	 *  @return the heuristic value of the Results object
+	 */
+	public static double heuristic(Results predictions) {
+		double res = 0.0f;
+		
+		for (BeliefState beliefState : predictions) {
+			for (GameState state : beliefState)
+				res += heuristic(state);
+		}
+		return res;
+	}
+	
+	/**
+	 * Perform the computation of an heuristic value for a given hash map object : we sum the heuristic value of each contingency plan
+	 * @param hmap a hash map that maps belief states to contingency plans
+	 * @return a utility value
+	 */
+	public static double heuristic(HashMap<BeliefState, ContingencyPlan> hmap) {
+		double heuristic_value = 0.;
+		
+		if (hmap.isEmpty())
+			return heuristic_value;
+		
+		for (BeliefState state : hmap.keySet()) {
+			
+			//If the associated contingency plan is for a belief state that is a leaf... we won't dive deeper in the recursion
+			if (hmap.get(state).is_leaf)
+				heuristic_value += heuristic(state);
+			
+			//...else we follow the recursion
+			else
+				heuristic_value += hmap.get(state).heuristic();
+		}
+		return heuristic_value;
+	}
+	
+	
+	/**
+	 * Sorts (Insertion Sort) the ArrayList<Integer> moves in decreasing order such that the first move leads to a state with the highest heuristic value when applied the BeliefState state.
+	 * @param moves ArrayList of integers which are the moves that are allowed in the current situation of the belief state
+	 * @param state belief state that is currently considered
+	 */
 	public static void sort_moves(ArrayList<Integer> moves, BeliefState state) {
 		int n = moves.size();
+		
 		for (int i = 0; i < n; i++) {
+			
 			Integer key = moves.get(i);
 			double key_value = heuristic(state.copy().putPiecePlayer(key));
 			int j = i - 1;
 			
 			while (j >= 0 && heuristic(state.copy().putPiecePlayer(moves.get(j))) < key_value) {
+				
 				moves.set(j+1, moves.get(j));
 				j--;
 			}
@@ -560,94 +714,117 @@ public class AI{
 		}
 	}
 	
-	//function orSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
+	/**
+	 * Performs the AndOrSearch algorithm at a Or-node level
+	 * @param currentBeliefState The current belief state of the game
+	 * @param path Set of belief states that have already been visited
+	 * @param depth_of_prediction Depth at which we should stop the search
+	 * @return a ContingencyPlan object which is composed of an action and a hash table which maps belief states to contingency plans
+	 */
 	public static ContingencyPlan orSearch(BeliefState currentBeliefState, ArrayList<BeliefState> path,int depth_of_prediction) {
-		HashMap<BeliefState, ContingencyPlan> plan;
+		HashMap<BeliefState, ContingencyPlan> subplan;
+		//the plan resulting from the and-search
 		ContingencyPlan plan_res;
+		//the plan that will be returned and which has maximum heuristic value
 		ContingencyPlan max_plan = new ContingencyPlan();
 		
-		if (depth_of_prediction > DEPTH) return new ContingencyPlan();
-		
-		if (currentBeliefState.isGameOver())
+		//To stop the search when the maximum depth is reached or if the game is over, we return an empty plan 
+		if (depth_of_prediction > DEPTH || currentBeliefState.isGameOver()) 
 			return new ContingencyPlan();
 		
+		//If the belief state has already been visited we return null value
 		if (path.contains(currentBeliefState))
 			return null;
 		
+		path.add(currentBeliefState);
+		
 		ArrayList<Integer> moves = currentBeliefState.getMoves();
 		
-		//we will sort the list of moves in increasing order of the value of the beliefstate associated
+		if (moves.size() == 1)
+			return new ContingencyPlan(moves.get(0));
+		
 		sort_moves(moves, currentBeliefState);
 		
+		//We consider each possible action...
 		for (Integer action : moves) {
-			path.add(currentBeliefState);
-			plan = andSearch(currentBeliefState.copy().putPiecePlayer(action), path, depth_of_prediction+1);
-			if (plan != null) {
-				plan_res = new ContingencyPlan(action, plan, heuristic(currentBeliefState.copy().putPiecePlayer(action)));
-				//System.out.println(plan_res.getHeuristicValue());
-				//System.out.println(max_plan.getHeuristicValue());
+			
+			//we perform the and-or search algorithm for the and-node which results of the action of putting the piece action on the board
+			subplan = andSearch(currentBeliefState.copy().putPiecePlayer(action), path, depth_of_prediction+1);
+			
+			if (subplan != null) {
+				
+				if (subplan.isEmpty()) //We reached the maximum depth...
+					plan_res = new ContingencyPlan(action, subplan, heuristic(currentBeliefState.copy().putPiecePlayer(action)));
+				else
+					plan_res = new ContingencyPlan(action, subplan, heuristic(subplan));
+				
+				//if the resulting plan has higher heuristic value than the current maximum contingency plan... we update the maximum plan
 				if (plan_res.getHeuristicValue() > max_plan.getHeuristicValue())
 					max_plan = plan_res;
 			}
 			
 		}
 		
-		//System.out.println(max_plan.getHeuristicValue());
+		//if we do not find a better plan than the empty plan... we return null value
 		if (max_plan.getHeuristicValue() == Double.NEGATIVE_INFINITY) {
-			//System.out.println("salut !");
 			return null;
 		}
 		return max_plan;
 	}
 
-	//function andSearch applying the algorithm of the course but stopping itself when a plan of 4 actions has been constructed
+	
+	/**
+	 * performs the AndOrSearch algorithm at a And-level node
+	 * @param currentBeliefStates Results object that is a set of belief states that results from a particular action
+	 * @param path Set of belief states that have already been visited
+	 * @param depth_of_prediction Depth at which we should stop the search
+	 * @return A hash table that maps to each belief state that may exist after performing a particular action a contingency plan
+	 */
 	public static HashMap<BeliefState, ContingencyPlan> andSearch(Results currentBeliefStates,ArrayList<BeliefState> path, int depth_of_prediction) {
 		
 		HashMap<BeliefState, ContingencyPlan> hmap = new HashMap<BeliefState,ContingencyPlan>();
 		ContingencyPlan subplan;
 		
-		if (depth_of_prediction > DEPTH) return new HashMap<BeliefState,ContingencyPlan>();
+		//If the Results object is empty or if the maximum depth is reached, we return an empty hash map
+		if (currentBeliefStates == null || depth_of_prediction > DEPTH) 
+			return new HashMap<BeliefState,ContingencyPlan>();
 		
+		//for each belief state in the Results object...
 		for (BeliefState state : currentBeliefStates) {
+			
+			//We predict the move of the other player
 			Results predictions = state.copy().predict();
-			if (predictions == null) //erreur contournée ici (je sais pas pourquoi il est nul des fois)
+			
+			//If there are no predictions left... we skip this iteration
+			if (predictions == null) 
 				continue;
-			for (BeliefState s_i : predictions) {
-				subplan = orSearch(s_i, path, depth_of_prediction+1);
+			
+			//for each belief state that may exist after the predictions...
+			for (BeliefState substate : predictions) {
+				
+				//we retrieve the subplan associated with this substate
+				subplan = orSearch(substate, path, depth_of_prediction+1);
 				if (subplan == null)
 					return null;
-				hmap.put(s_i, subplan);
+				
+				//we add the plan if it is not null
+				hmap.put(substate, subplan);
 			}
 		}
 		return hmap;
 	}
-		
-	public static double heuristic(Results predictions) {
-		double res = 0.0f;
-		for (BeliefState beliefState : predictions) {
-			for (GameState state : beliefState)
-				res += heuristic(state);
-		}
-		return res;
-	}
-		
-	
-	public static double heuristic(GameState game) {
-		int heuristic_value = 0;						   
-		
-		//calcul de l'utilité en fonction des pions rouges
-		for (int row = 0; row < 6; row++) {
-			for (int column = 0; column < 7; column++) {
-				if (game.content(row, column) == 2)
-					heuristic_value += (6-row)*(HEURISTIC[row][column] - scan(game, row, column, 1)); //on mets du poids sur les pions placés bas
-				if (game.content(row, column) == 1)
-					heuristic_value -= (6-row)*(HEURISTIC[row][column] - scan(game, row, column, 2));
-			}
-		}
-		return game.proba()*((double) heuristic_value);
-	}
 	
 	
+	
+	/**
+	 * Compute a penalty for our AI (or for the opponent depending on the value of the value of the parameter opponent) that compute the number of valid 4-disc lines that is blocked by an opponent pawn.
+	 * We enumerate each position using two nested switch-case structures. Each if-condition verifies if at least one element of the 4-disc line considered is occupied by an opponent piece. If it is the case, we increment the value of cpt.
+	 * @param game the game state we consider
+	 * @param row the row considered
+	 * @param column the column considered
+	 * @param opponent if 1, the computation is made for our AI. Otherwise it is the reverse
+	 * @return the number of valid 4-disc lines that is blocked by an opponent pawn
+	 */
 	public static int scan(GameState game, int row, int column, int opponent) {
 		int cpt = 0;
 		
@@ -1366,348 +1543,17 @@ public class AI{
 			
 			break;
 		}
-		
-		
-	
-		
 		return cpt;
 	}
 	
 	
-	
-	
-	//function returning the best move for a given BeliefState
+	/**
+	 * Return the best action to take in the current situation
+	 * @param game the current game state
+	 * @return an integer which represents the column to play
+	 */
 	public static int findNextMove(BeliefState game) {
-		ExploredSet path = new ExploredSet();
-
-		
 		ContingencyPlan plan = orSearch(game,new ArrayList<BeliefState>(),1);
-		
-		/*
-		ContingencyPlan bestPlan = null;
-		
-		
-		//Search of the best plan in the plan of action obtained after or-and-search
-		float best_C_value=Float.NEGATIVE_INFINITY;
-		for (Entry<BeliefState,ContingencyPlan> subplan : plan.getPlan().entrySet()){
-			Float current_C_value=exploredSet.get(subplan.getKey());
-			if(current_C_value==null) {
-				current_C_value=computeHeuristicForBeliefState(subplan.getKey());
-			}
-			if(current_C_value>best_C_value){
-				best_C_value=current_C_value;
-				bestPlan=subplan.getValue();
-			}
-		}
-		*/
-		//System.out.println(plan.getPlan().size());
-
-		
         return plan.action;
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-//Première idée d'heuristique
-
-public static float heuristic2(GameState game) {
-	int heuristic_value = 0;
-	
-	//On va calculer pour chaque case jouable une valeur qui nous donnera une estimation de l'utilité
-	for (int column = 0; column < 7; column++) {
-		
-		//On cherche la première ligne vide sur la colonne j
-		for (int row = 0; row < 6 && game.content(row, column) != 0; row++) {
-			
-			//si la colonne n'est pas remplie
-			if (row < 6)
-				heuristic_value += compute_row(game, row, column) + compute_column(game, row, column) + compute_diag(game, row, column);
-			
-		}
-	}
-	return game.proba()*((float) heuristic_value);
-	}
-
-
-/* Calcule la valeur d'utilité sur la ligne concernée */
-public static int compute_row(GameState game, int row, int column) {
-	int res = 0;
-	
-	switch(column) {
-	
-	case 0:
-		//à droite
-		if (game.content(row, column+1) == 2) res+=2;
-		else if (game.content(row, column+1) == 0) res+=1;
-		break;
-		
-	case 6:
-		//à gauche
-		if (game.content(row, column-1) == 2) res+=2;
-		else if (game.content(row, column-1) == 0) res+=1;
-		break;
-		
-	default:
-		//à droite
-		if (game.content(row, column+1) == 2) res+=2;
-		else if (game.content(row, column+1) == 0) res+=1;
-		//à gauche
-		if (game.content(row, column-1) == 2) res+=2;
-		else if (game.content(row, column-1) == 0) res+=1;
-		break;
-	}
-	
-	return res;
-}
-
-/* calcule la valeur d'utilité sur la colonne concernée */
-public static int compute_column(GameState game, int row, int column) {
-	int res = 0;
-	
-	switch(row) {
-	
-	//il n'y a rien en-dessous
-	case 0:
-		break;
-		
-	default:
-		//en-dessous
-		if (game.content(row-1, column) == 2) res+=2;
-		else if (game.content(row-1, column) == 0) res+=1;
-		break;
-	}
-	
-	return res;
-}
-
-/* calcule la valeur d'utilité sur les diagonales concernées */
-public static int compute_diag(GameState game, int row, int column) {
-	int res = 0;
-	
-	switch(column) {
-	
-	case 0:
-		
-		switch(row) {
-			
-		case 0:
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			break;
-			
-		case 5:
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			break;
-			
-		default:
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			break;
-		}
-		break;
-		
-	
-	case 6:
-		
-		switch(row) {
-		
-		case 0:
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			break;
-			
-		case 5:
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			break;
-			
-		default:
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			break;
-		}
-		break;
-		
-		
-	default:
-		
-		switch(row) {
-		
-		case 0:
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			break;
-			
-		case 5:
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			break;
-			
-		default:
-			//en bas à gauche
-			if (game.content(row-1, column-1) == 2) res+=2;
-			else if (game.content(row-1, column-1) == 0) res+=1;
-			//en bas à droite
-			if (game.content(row-1, column+1) == 2) res+=2;
-			else if (game.content(row-1, column+1) == 0) res+=1;
-			//en haut à droite
-			if (game.content(row+1, column+1) == 2) res+=2;
-			else if (game.content(row+1, column+1) == 0) res+=1;
-			//en haut à gauche
-			if (game.content(row+1, column-1) == 2) res+=2;
-			else if (game.content(row+1, column-1) == 0) res+=1;
-			break;
-		
-		}
-	
-	}
-	return res;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-public static int compute_row_bonus(GameState game, int row, int column) {
-	int res = 0, temp_res = 0, temp;
-	int lb = Integer.max(0, column-3);
-	int ub = Integer.min(6, column+3); 
-	
-	boolean run = true;
-	
-	while(run) {
-		for (int i = lb; i <= Integer.min(lb+4, ub); i++) {
-			temp = game.content(row, i);
-			if (temp == 2)
-				temp_res += 2;
-			else if (temp == 0)
-				temp_res += 1;
-			
-			if (ub - lb + 1 < 4)
-				run = false;
-
-			lb++;
-		}
-		res += temp_res;
-		temp_res = 0;
-	}
-	return res;
-}
-
-public static int compute_column_bonus(GameState game, int row, int column) {
-	int res = 0, temp_res = 0, temp;
-	int lb = Integer.max(0, row-3);
-	int ub = Integer.min(5, row+3); 
-	
-	boolean run = true;
-	
-	while(run) {
-		for (int i = lb; i <= Integer.min(lb+4, ub); i++) {
-			temp = game.content(i, column);
-			if (temp == 2)
-				temp_res += 2;
-			else if (temp == 0)
-				temp_res += 1;
-			
-			if (ub - lb + 1 < 4)
-				run = false;
-
-			lb++;
-		}
-		res += temp_res;
-		temp_res = 0;
-	}
-	return res;
-}
-
-public static int compute_bonus_columns(GameState state){
-    int col_count =0;
-    for(int i=0; i<7; i++){
-        for (int j=0; j<3; j++){
-            if(state.content(i,j)==2){
-                if(state.content(i,j+1)==2){
-                    if(state.content(i,j+2)==2){
-                        if(state.content(i,j+3)==2){
-                            col_count +=3;
-                        }
-                    }
-                    else{
-                        col_count +=2;
-                    }
-                }
-                else if(state.content(i,j+1)==0){
-                    col_count +=1;
-                }
-            }
-        }
-    }
-    return col_count;
-}
-
-public static int compute_bonus_rows(GameState state){
-    int row_count=0;
-    for(int i=0; i<4; i++){
-        for (int j=0; j<6; j++){
-            if(state.content(i,j)==2){
-                if(state.content(i+1,j)==2){
-                    if(state.content(i+2,j)==2){
-                        if(state.content(i+3,j)==2){
-                            row_count+=3;
-                        }
-                    }
-                    else{
-                        row_count+=2;
-                    }
-                }
-                else if(state.content(i,j)==0){
-                    row_count+=1;
-                }
-            }
-        }
-    }
-    return row_count;
-}
-
 }
